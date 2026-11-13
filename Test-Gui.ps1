@@ -45,6 +45,7 @@ $check.Add_Tick({
         switch ($script:guiStage) {
             0 {
                 if ($model.Items.Count -eq 6) {
+                    if ($null -eq $form.Icon -or -not $form.Icon.IsFrozen) { throw 'Window icon failed to load' }
                     if ($model.IsEditable -or $model.SelectedItem -ne 'test-model:latest') { throw 'Model dropdown failed' }
                     if ($form.FindName('VersionText').Text -ne "v$script:AppVersion" -or $status.Text) { throw 'Version footer failed' }
                     if ($xaml.OuterXml -match 'Your next recipe starts here|RECIPE WORKSPACE|From inspiration|Paste a recipe, polish') { throw 'Removed text still present' }
@@ -132,4 +133,6 @@ if ($script:guiFailure) { throw $script:guiFailure }
 '@
 $source=$source.Replace('[void]$form.ShowDialog()',$smoke)
 $source=$source.Replace('. "$PSScriptRoot\Recipe.Core.ps1"',(". '" + $PSScriptRoot + "\Recipe.Core.ps1'"))
+$iconPath=Join-Path $PSScriptRoot 'Assets\MealieJsonCreate.ico'
+$source=$source.Replace("(Join-Path `$PSScriptRoot 'Assets\MealieJsonCreate.ico')", ("'" + $iconPath.Replace("'", "''") + "'"))
 & ([scriptblock]::Create($source))

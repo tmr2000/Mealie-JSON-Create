@@ -1,5 +1,5 @@
 Set-StrictMode -Version 2.0
-$script:AppVersion='0.2.2'
+$script:AppVersion='0.2.5'
 
 function Format-RecipeLine {
     param([string]$Text, [switch]$Sentence)

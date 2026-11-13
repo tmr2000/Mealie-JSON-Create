@@ -259,7 +259,7 @@ Add-Type -AssemblyName WindowsBase
                 </TabControl>
                 <Border x:Name="OutputPlaceholder" Background="#232221" Margin="0,54,0,0" IsHitTestVisible="False">
                   <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="260" Margin="8,0">
-                    <Border Background="#30281F" Width="64" Height="64" CornerRadius="32" HorizontalAlignment="Center" Margin="0,0,0,20">
+                    <Border Background="#30281F" Width="64" Height="64" CornerRadius="12" HorizontalAlignment="Center" Margin="0,0,0,20">
                       <Viewbox Width="28" Height="28"><Path Data="M 3 1 L 17 1 L 23 7 L 23 29 L 3 29 Z M 17 1 L 17 8 L 23 8 M 8 14 L 18 14 M 8 19 L 18 19 M 8 24 L 15 24" Stroke="#E58325" StrokeThickness="1.7"/></Viewbox>
                     </Border>
                     <TextBlock Text="A new home for your recipe" FontSize="16" FontWeight="SemiBold" TextAlignment="Center"/>
@@ -294,6 +294,19 @@ Add-Type -AssemblyName WindowsBase
 $reader=New-Object System.Xml.XmlNodeReader $xaml
 $form=[Windows.Markup.XamlReader]::Load($reader)
 $reader.Close()
+# The EXE build embeds the ICO so the finished app needs no sidecar asset.
+[string]$script:EmbeddedIcon=''
+$iconBytes=if ($script:EmbeddedIcon) {
+    [Convert]::FromBase64String($script:EmbeddedIcon)
+} else {
+    [IO.File]::ReadAllBytes((Join-Path $PSScriptRoot 'Assets\MealieJsonCreate.ico'))
+}
+$iconStream=[IO.MemoryStream]::new([byte[]]$iconBytes)
+try {
+    $form.Icon=[Windows.Media.Imaging.BitmapFrame]::Create($iconStream,[Windows.Media.Imaging.BitmapCreateOptions]::PreservePixelFormat,[Windows.Media.Imaging.BitmapCacheOption]::OnLoad)
+    $form.Icon.Freeze()
+} finally { $iconStream.Dispose() }
+
 # Keep the initial window inside the desktop work area on smaller laptop screens.
 $workArea=[Windows.SystemParameters]::WorkArea
 $form.Width=[Math]::Max($form.MinWidth,[Math]::Min($form.Width,$workArea.Width-24))

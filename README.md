@@ -52,6 +52,39 @@ Install-Module ps2exe -Scope CurrentUser
 .\Build.ps1
 ```
 
-The build embeds the conversion core into a single script and produces `dist\MealieJsonCreate.exe` with STA and no console. WPF and its styles remain embedded in the executable. PS2EXE is a separate build prerequisite; Ollama remains an optional runtime dependency. The application does not install dependencies automatically. Executable packaging requires testing in your environment. The GUI test uses mock model discovery and checks conversion, previews, model states and compact layout. Add `-Snapshots` to render visual QA PNGs into `.qa`.
+The build embeds the conversion core into a single script and produces `dist\MealieJsonCreate-MAJOR.MINOR.PATCH.exe` with STA and no console. WPF and its styles remain embedded in the executable. PS2EXE is a separate build prerequisite; Ollama remains an optional runtime dependency. The application does not install dependencies automatically. Executable packaging requires testing in your environment. The GUI test uses mock model discovery and checks conversion, previews, model states and compact layout. Add `-Snapshots` to render visual QA PNGs into `.qa`.
 
 References: [Mealie import implementation](https://github.com/mealie-recipes/mealie/blob/mealie-next/mealie/routes/recipe/recipe_crud_routes.py), [Ollama structured outputs](https://docs.ollama.com/capabilities/structured-outputs), [PS2EXE](https://github.com/MScholtes/PS2EXE).
+
+## Application icon
+
+The orange bowl icon in `Assets/MealieJsonCreate.ico` is used for the window and the built EXE. Commit the Assets folder alongside the source. `Build.ps1` embeds the icon, so distributing the EXE does not require this folder. To regenerate its seven sizes (16–256 px) from the original vector artwork:
+
+```powershell
+powershell.exe -NoProfile -STA -File .\Assets\Generate-Icon.ps1
+```
+
+Rebuild with `.\Build.ps1` after changing the icon. Windows may cache an older EXE icon; a newly created shortcut or a different EXE filename can help verify the updated artwork.
+
+## Versioning and releases
+
+Use MAJOR.MINOR.PATCH, for example 0.2.4. See [CHANGELOG.md](CHANGELOG.md) for release history.
+
+| Change | Version increment | Example |
+|---|---|---|
+| Bug fixes, visual polish, documentation or build fixes without new user capabilities | Patch | 0.2.4 to 0.2.5 |
+| New compatible capabilities, such as website import or an additional AI provider | Minor; reset patch | 0.2.4 to 0.3.0 |
+| Breaking changes after the stable release, such as incompatible saved settings or a changed export contract | Major; reset minor and patch | 1.4.2 to 2.0.0 |
+
+During 0.x development, use a minor bump for breaking changes and document them explicitly. Move to 1.0.0 once the core paste/convert/review/export workflow, Windows EXE distribution and documented compatibility commitments are stable and tested. A redesign alone does not require a major version.
+
+The compatibility commitments cover documented inputs, Mealie-compatible exports, saved configuration (if introduced), and supported Windows/PowerShell requirements. Changes that force users to alter a documented workflow or migrate data need a compatibility review.
+
+For each release:
+
+1. Keep user-facing change notes under Unreleased as development proceeds.
+2. Choose the release version, update AppVersion in Recipe.Core.ps1, and promote the notes to a dated changelog section. Do not change an already published version.
+3. Run the relevant checks and Build.ps1. The build requires a matching dated changelog entry and names both the EXE and bundled script using AppVersion. Windows file metadata uses the same version with a trailing .0.
+4. Smoke-test the built EXE, then commit source and changelog, tag vMAJOR.MINOR.PATCH and attach the versioned EXE to the matching GitHub Release. Keep dist/ and .qa/ ignored.
+
+The three numeric components are currently supported by the build; prerelease labels such as -beta.1 would require extending version handling first. Builds do not invent changelog notes or increase the version automatically.
