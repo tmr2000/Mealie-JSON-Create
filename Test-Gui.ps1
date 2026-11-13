@@ -1,0 +1,135 @@
+param([switch]$Snapshots)
+$ErrorActionPreference='Stop'
+$script:takeSnapshots=$Snapshots
+$script:qaFolder=Join-Path $PSScriptRoot '.qa'
+$source=Get-Content "$PSScriptRoot\MealieJsonCreate.ps1" -Raw
+$smoke=@'
+function Get-OllamaModels {
+    param($Endpoint)
+    if ($Endpoint -eq 'http://localhost:11434') { 'test-model:latest';'second-model:7b';'qwen3:8b';'gemma3:4b';'mistral:latest';'deepseek-r1:8b' }
+    elseif ($Endpoint -eq 'http://empty:11434') { return }
+    else { throw 'Test connection failure' }
+}
+function Click-Button($Button) {
+    $Button.RaiseEvent([Windows.RoutedEventArgs]::new([Windows.Controls.Button]::ClickEvent))
+}
+function Save-UiSnapshot([string]$Name) {
+    if (-not $script:takeSnapshots) { return }
+    [void][IO.Directory]::CreateDirectory($script:qaFolder)
+    $form.UpdateLayout()
+    $bitmap=[Windows.Media.Imaging.RenderTargetBitmap]::new([int]$form.Content.ActualWidth,[int]$form.Content.ActualHeight,96,96,[Windows.Media.PixelFormats]::Pbgra32)
+    $bitmap.Render($form.Content)
+    $encoder=New-Object Windows.Media.Imaging.PngBitmapEncoder
+    $encoder.Frames.Add([Windows.Media.Imaging.BitmapFrame]::Create($bitmap))
+    $stream=[IO.File]::Create((Join-Path $script:qaFolder $Name))
+    try { $encoder.Save($stream) } finally { $stream.Dispose() }
+}
+$sample=@"
+Tomato & basil pasta
+A simple supper with a rich tomato sauce.
+Serves: 2
+Ingredients
+200 g pasta
+1 tin chopped tomatoes
+1 handful fresh basil
+Method
+Cook the pasta according to the packet instructions. Drain well, then return it to the pan.
+Add the tomatoes and stir until the pasta is coated. Fold through the basil and serve.
+"@
+$check=New-Object Windows.Threading.DispatcherTimer
+$check.Interval=[TimeSpan]::FromMilliseconds(250)
+$script:smokeTicks=0;$script:guiStage=0;$script:guiFailure=$null
+$check.Add_Tick({
+    try {
+        $script:smokeTicks++
+        switch ($script:guiStage) {
+            0 {
+                if ($model.Items.Count -eq 6) {
+                    if ($model.IsEditable -or $model.SelectedItem -ne 'test-model:latest') { throw 'Model dropdown failed' }
+                    if ($form.FindName('VersionText').Text -ne "v$script:AppVersion" -or $status.Text) { throw 'Version footer failed' }
+                    if ($xaml.OuterXml -match 'Your next recipe starts here|RECIPE WORKSPACE|From inspiration|Paste a recipe, polish') { throw 'Removed text still present' }
+                    $refreshPoint=$refresh.TranslatePoint([Windows.Point]::new(0,0),$form)
+                    $modelPoint=$model.TranslatePoint([Windows.Point]::new(0,0),$form)
+                    if ([Math]::Abs($refreshPoint.Y-$modelPoint.Y) -gt 2 -or $refreshPoint.X -le $modelPoint.X) { throw 'Refresh icon is not beside model dropdown' }
+                    if ($inputBox.Text.Length -or $copy.IsEnabled -or $null -ne $form.FindName('InputPlaceholder')) { throw 'Initial state failed' }
+                    if ($paste.BorderThickness.Left -ne 1 -or $clear.BorderThickness.Left -ne 1 -or $paste.Background.ToString() -eq '#00FFFFFF') { throw 'Paste and clear button styling failed' }
+                    Save-UiSnapshot 'empty.png'
+                    Click-Button $convert
+                    if ($status.Text -ne 'Paste a recipe to get started.') { throw 'Empty input validation failed' }
+                    $model.SelectedIndex=1;Click-Button $refresh;$script:guiStage=1
+                }
+            }
+            1 {
+                if (-not $script:modelWorker) {
+                    if ($model.SelectedItem -ne 'second-model:7b') { throw 'Selection not preserved' }
+                    $model.IsDropDownOpen=$true;$script:guiStage=2
+                }
+            }
+            2 {
+                if (-not $model.IsDropDownOpen) { throw 'Dropdown did not open' }
+                $last=$model.ItemContainerGenerator.ContainerFromIndex(5)
+                if ($null -eq $last -or -not $last.IsVisible -or $last.ActualHeight -le 0) { throw 'Multiple models are not visible in dropdown' }
+                $model.SelectedIndex=5
+                if ($model.SelectedItem -ne 'deepseek-r1:8b') { throw 'Last model cannot be selected' }
+                $model.IsDropDownOpen=$false;$ollama.IsChecked=$true
+                if ($modeHint.Text -notlike 'Fuller*') { throw 'AI mode hint failed' }
+                $ollama.IsChecked=$false;$endpoint.Text='http://empty:11434';$script:guiStage=3
+            }
+            3 {
+                if ($modelStatus.Text -like 'No models*') {
+                    if ($model.Items.Count -ne 0 -or $model.IsEnabled) { throw 'Empty model list failed' }
+                    $endpoint.Text='http://failed:11434';$script:guiStage=4
+                }
+            }
+            4 {
+                if ($modelStatus.Text -like 'Cannot connect*') {
+                    $inputBox.Text=$sample
+                    if (-not $clear.IsEnabled) { throw 'Input state failed' }
+                    Click-Button $convert;$script:guiStage=5
+                }
+            }
+            5 {
+                if ($copy.IsEnabled) {
+                    $r=$outputBox.Text | ConvertFrom-Json
+                    if ($r.name -ne 'Tomato & basil pasta' -or $r.recipeIngredient.Count -ne 3) { throw 'GUI conversion failed' }
+                    if ($preview.Children.Count -lt 10 -or $outputPlaceholder.Visibility -ne 'Collapsed' -or -not $save.IsEnabled) { throw 'Recipe preview failed' }
+                    $endpoint.Text='http://localhost:11434';$script:guiStage=6
+                } elseif ($status.Text -like 'Conversion failed*') { throw $status.Text }
+            }
+            6 {
+                if (-not $script:modelWorker -and $model.Items.Count -eq 6) {
+                    if ($status.Text -notlike 'Recipe ready*') { throw 'Model discovery overwrote conversion status' }
+                    Save-UiSnapshot 'recipe.png'
+                    $form.FindName('OutputTabs').SelectedIndex=1;$script:guiStage=7
+                }
+            }
+            7 { Save-UiSnapshot 'json.png';$form.Width=$form.MinWidth;$form.Height=$form.MinHeight;$script:guiStage=8 }
+            8 {
+                Save-UiSnapshot 'compact.png'
+                foreach ($control in @($convert,$copy,$save,$inputBox)) {
+                    $p=$control.TranslatePoint([Windows.Point]::new(0,0),$form)
+                    if ($p.X -lt 0 -or $p.Y -lt 0 -or ($p.X+$control.ActualWidth) -gt $form.ActualWidth -or ($p.Y+$control.ActualHeight) -gt $form.ActualHeight) { throw 'A key control was clipped at minimum size' }
+                }
+                Click-Button $clear
+                if ($inputBox.Text.Length -or $clear.IsEnabled) { throw 'Clear text failed' }
+                $inputBox.Text='Not a complete recipe';Click-Button $convert;$script:guiStage=9
+            }
+            9 {
+                if ($status.Text -like 'Conversion failed*') {
+                    if ($copy.IsEnabled -or $save.IsEnabled -or $preview.Children.Count) { throw 'Stale output left enabled after failure' }
+                    Write-Host 'WPF checks passed: models, refresh, dropdown, modes, errors, conversion, preview, tabs, compact layout and clear.'
+                    $check.Stop();$form.Close()
+                }
+            }
+        }
+        if ($script:smokeTicks -gt 100) { throw "GUI checks timed out at stage $script:guiStage. Status: $($status.Text)" }
+    } catch { $script:guiFailure=$_;$check.Stop();$form.Close() }
+})
+$check.Start()
+[void]$form.ShowDialog()
+$check.Stop()
+if ($script:guiFailure) { throw $script:guiFailure }
+'@
+$source=$source.Replace('[void]$form.ShowDialog()',$smoke)
+$source=$source.Replace('. "$PSScriptRoot\Recipe.Core.ps1"',(". '" + $PSScriptRoot + "\Recipe.Core.ps1'"))
+& ([scriptblock]::Create($source))
