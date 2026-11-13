@@ -1,4 +1,4 @@
-param([switch]$Snapshots)
+﻿param([switch]$Snapshots)
 $ErrorActionPreference='Stop'
 $script:takeSnapshots=$Snapshots
 $script:qaFolder=Join-Path $PSScriptRoot '.qa'
@@ -9,6 +9,13 @@ function Get-OllamaModels {
     if ($Endpoint -eq 'http://localhost:11434') { 'test-model:latest';'second-model:7b';'qwen3:8b';'gemma3:4b';'mistral:latest';'deepseek-r1:8b' }
     elseif ($Endpoint -eq 'http://empty:11434') { return }
     else { throw 'Test connection failure' }
+}
+function ConvertTo-RecipeJson {
+    param($Text,$Title,$SourceUrl,$UseOllama,$Endpoint,$Model,$ClassificationJson)
+    if (-not $UseOllama) { throw 'GUI must always use Ollama' }
+    if ($Text -eq 'Not a complete recipe') { throw 'Missing ingredients and method' }
+    Start-Sleep -Milliseconds 300
+    '{"name":"Tomato & basil pasta","description":"A simple supper with a rich tomato sauce.","recipeYield":"2 servings","prepTime":"PT10M","cookTime":"PT20M","totalTime":"PT30M","comment":"Times estimated.","recipeCategory":["Main courses"],"keywords":["Pasta","Italian"],"recipeIngredient":["200 g pasta","1 tin chopped tomatoes","1 handful fresh basil"],"recipeInstructions":[{"text":"Cook the pasta according to the packet instructions. Drain well, then return it to the pan."},{"text":"Add the tomatoes and stir until the pasta is coated. Fold through the basil and serve."}]}'
 }
 function Click-Button($Button) {
     $Button.RaiseEvent([Windows.RoutedEventArgs]::new([Windows.Controls.Button]::ClickEvent))
@@ -72,9 +79,9 @@ $check.Add_Tick({
                 if ($null -eq $last -or -not $last.IsVisible -or $last.ActualHeight -le 0) { throw 'Multiple models are not visible in dropdown' }
                 $model.SelectedIndex=5
                 if ($model.SelectedItem -ne 'deepseek-r1:8b') { throw 'Last model cannot be selected' }
-                $model.IsDropDownOpen=$false;$ollama.IsChecked=$true
-                if ($modeHint.Text -notlike 'Fuller*') { throw 'AI mode hint failed' }
-                $ollama.IsChecked=$false;$endpoint.Text='http://empty:11434';$script:guiStage=3
+                $model.IsDropDownOpen=$false
+                if ($null -ne $form.FindName('OllamaToggle') -or $inputStage.Visibility -ne 'Visible' -or $outputStage.Visibility -ne 'Collapsed') { throw 'Mandatory Ollama/input stage failed' }
+                $endpoint.Text='http://empty:11434';$script:guiStage=3
             }
             3 {
                 if ($modelStatus.Text -like 'No models*') {
@@ -84,9 +91,12 @@ $check.Add_Tick({
             }
             4 {
                 if ($modelStatus.Text -like 'Cannot connect*') {
+                    $title.Text='Tomato & basil pasta';$source.Text='https://example.com/pasta'
                     $inputBox.Text=$sample
                     if (-not $clear.IsEnabled) { throw 'Input state failed' }
-                    Click-Button $convert;$script:guiStage=5
+                    Click-Button $convert
+                    if ($script:worker -or $status.Text -notlike 'Select an available*') { throw 'Missing model did not block conversion' }
+                    $endpoint.Text='http://localhost:11434';$script:guiStage=10
                 }
             }
             5 {
@@ -94,6 +104,12 @@ $check.Add_Tick({
                     $r=$outputBox.Text | ConvertFrom-Json
                     if ($r.name -ne 'Tomato & basil pasta' -or $r.recipeIngredient.Count -ne 3) { throw 'GUI conversion failed' }
                     if ($preview.Children.Count -lt 10 -or $outputPlaceholder.Visibility -ne 'Collapsed' -or -not $save.IsEnabled) { throw 'Recipe preview failed' }
+                    $r | Add-Member -NotePropertyName recipeCategory -NotePropertyValue @('Main courses') -Force
+                    $r | Add-Member -NotePropertyName keywords -NotePropertyValue @('Pasta','Italian') -Force
+                    Show-RecipePreview ($r | ConvertTo-Json -Depth 12)
+                    $chipText=@($metadata.Children | Where-Object { $_ -is [Windows.Controls.WrapPanel] } | ForEach-Object { $_.Children } | ForEach-Object { $_.Child.Text })
+                    if ($chipText -notcontains 'Main courses' -or $chipText -notcontains 'Italian') { throw 'Classification chips failed' }
+                    if ($inputStage.Visibility -ne 'Collapsed' -or $outputStage.Visibility -ne 'Visible') { throw 'Output stage failed' }
                     $endpoint.Text='http://localhost:11434';$script:guiStage=6
                 } elseif ($status.Text -like 'Conversion failed*') { throw $status.Text }
             }
@@ -107,18 +123,33 @@ $check.Add_Tick({
             7 { Save-UiSnapshot 'json.png';$form.Width=$form.MinWidth;$form.Height=$form.MinHeight;$script:guiStage=8 }
             8 {
                 Save-UiSnapshot 'compact.png'
-                foreach ($control in @($convert,$copy,$save,$inputBox)) {
+                foreach ($control in @($back,$copy,$save,$metadata.Parent,$outputBox)) {
                     $p=$control.TranslatePoint([Windows.Point]::new(0,0),$form)
-                    if ($p.X -lt 0 -or $p.Y -lt 0 -or ($p.X+$control.ActualWidth) -gt $form.ActualWidth -or ($p.Y+$control.ActualHeight) -gt $form.ActualHeight) { throw 'A key control was clipped at minimum size' }
+                    if ($p.X -lt 0 -or $p.Y -lt 0 -or ($p.X+$control.ActualWidth) -gt $form.ActualWidth -or ($p.Y+$control.ActualHeight) -gt $form.ActualHeight) { throw "Control $($control.Name) clipped at minimum size" }
                 }
+                Click-Button $back
+                if ($inputStage.Visibility -ne 'Visible' -or $inputBox.Text -ne $sample -or $title.Text -ne 'Tomato & basil pasta' -or $source.Text -ne 'https://example.com/pasta' -or $model.SelectedItem -ne 'test-model:latest') { throw 'Back lost input' }
+                $form.UpdateLayout()
+                foreach ($control in @($convert,$inputBox,$paste,$clear)) {
+                    $p=$control.TranslatePoint([Windows.Point]::new(0,0),$form)
+                    if (-not $control.IsVisible -or $control.ActualWidth -le 0 -or $p.X+$control.ActualWidth -gt $form.ActualWidth -or $p.Y+$control.ActualHeight -gt $form.ActualHeight) { throw 'Input stage control clipped' }
+                }
+                Save-UiSnapshot 'input-compact.png'
                 Click-Button $clear
                 if ($inputBox.Text.Length -or $clear.IsEnabled) { throw 'Clear text failed' }
                 $inputBox.Text='Not a complete recipe';Click-Button $convert;$script:guiStage=9
             }
+            10 {
+                if (-not $script:modelWorker -and $model.Items.Count -eq 6) {
+                    Click-Button $convert
+                    if ($outputStage.Visibility -ne 'Visible' -or $inputStage.Visibility -ne 'Collapsed' -or $copy.IsEnabled) { throw 'Conversion progress stage failed' }
+                    $script:guiStage=5
+                }
+            }
             9 {
                 if ($status.Text -like 'Conversion failed*') {
                     if ($copy.IsEnabled -or $save.IsEnabled -or $preview.Children.Count) { throw 'Stale output left enabled after failure' }
-                    Write-Host 'WPF checks passed: models, refresh, dropdown, modes, errors, conversion, preview, tabs, compact layout and clear.'
+                    Write-Host 'WPF checks passed: models, refresh, dropdown, mandatory AI, stage navigation, errors, conversion, preview, tabs, compact layout and clear.'
                     $check.Stop();$form.Close()
                 }
             }

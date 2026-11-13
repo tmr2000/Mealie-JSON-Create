@@ -1,4 +1,4 @@
-#Requires -Version 5.1
+﻿#Requires -Version 5.1
 $ErrorActionPreference='Stop'
 . "$PSScriptRoot\Recipe.Core.ps1"
 if ($script:AppVersion -notmatch '^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$') { throw 'AppVersion must use MAJOR.MINOR.PATCH format.' }
@@ -12,6 +12,9 @@ if (-not (Get-Command Invoke-PS2EXE -ErrorAction SilentlyContinue)) {
 $destination=Join-Path $PSScriptRoot 'dist'
 [void][IO.Directory]::CreateDirectory($destination)
 $core=Get-Content (Join-Path $PSScriptRoot 'Recipe.Core.ps1') -Raw
+$classificationJson=Get-Content (Join-Path $PSScriptRoot 'Recipe.Classification.json') -Raw -Encoding UTF8
+$null=$classificationJson | ConvertFrom-Json -ErrorAction Stop
+$core=$core.Replace("Get-Content (Join-Path `$PSScriptRoot 'Recipe.Classification.json') -Raw -Encoding UTF8", ("'" + $classificationJson.Replace("'", "''") + "'"))
 $gui=Get-Content (Join-Path $PSScriptRoot 'MealieJsonCreate.ps1') -Raw
 $bundle=$gui.Replace('. "$PSScriptRoot\Recipe.Core.ps1"',$core)
 $iconPath=Join-Path $PSScriptRoot 'Assets\MealieJsonCreate.ico'

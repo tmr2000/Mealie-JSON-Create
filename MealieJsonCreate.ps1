@@ -1,4 +1,4 @@
-#Requires -Version 5.1
+﻿#Requires -Version 5.1
 param([switch]$CoreOnly)
 
 # Embedded at build time for a single-file executable; dot-source for development.
@@ -139,22 +139,6 @@ Add-Type -AssemblyName WindowsBase
         </ControlTemplate.Triggers>
       </ControlTemplate></Setter.Value></Setter>
     </Style>
-    <Style TargetType="CheckBox">
-      <Setter Property="Foreground" Value="#F4F1ED"/>
-      <Setter Property="Cursor" Value="Hand"/><Setter Property="VerticalContentAlignment" Value="Center"/>
-      <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="CheckBox">
-        <StackPanel Orientation="Horizontal">
-          <Border x:Name="Track" Width="36" Height="20" CornerRadius="10" Background="#55514D" Margin="0,0,10,0">
-            <Ellipse x:Name="Thumb" Width="14" Height="14" Fill="#F4F1ED" HorizontalAlignment="Left" Margin="3,0"/>
-          </Border>
-          <ContentPresenter VerticalAlignment="Center"/>
-        </StackPanel>
-        <ControlTemplate.Triggers>
-          <Trigger Property="IsChecked" Value="True"><Setter TargetName="Track" Property="Background" Value="#E58325"/><Setter TargetName="Thumb" Property="HorizontalAlignment" Value="Right"/></Trigger>
-          <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="Track" Property="BorderBrush" Value="#FFCF9C"/><Setter TargetName="Track" Property="BorderThickness" Value="2"/></Trigger>
-        </ControlTemplate.Triggers>
-      </ControlTemplate></Setter.Value></Setter>
-    </Style>
     <Style TargetType="TabItem">
       <Setter Property="Foreground" Value="#AFA9A1"/><Setter Property="Padding" Value="15,9"/>
       <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="TabItem">
@@ -191,7 +175,8 @@ Add-Type -AssemblyName WindowsBase
       </Grid>
     </Border>
     <Grid Grid.Row="1" Margin="24,24,24,18">
-      <Grid.ColumnDefinitions><ColumnDefinition Width="272"/><ColumnDefinition Width="24"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+      <Grid x:Name="InputStage">
+        <Grid.ColumnDefinitions><ColumnDefinition Width="272"/><ColumnDefinition Width="24"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
       <Border Background="#232221" CornerRadius="12" BorderBrush="#383430" BorderThickness="1">
         <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
           <StackPanel Margin="20">
@@ -206,8 +191,8 @@ Add-Type -AssemblyName WindowsBase
             <TextBlock Text="Keep a link to the original recipe." Style="{StaticResource Caption}" FontSize="11" Margin="0,6,0,18"/>
             <Border Height="1" Background="#3A3530" Margin="0,0,0,18"/>
             <TextBlock Text="LOCAL AI" Foreground="#EBA76A" FontSize="10" FontWeight="SemiBold" Margin="0,0,0,17"/>
-            <CheckBox x:Name="OllamaToggle" Content="Cookbook rewrite" ToolTip="Use Ollama to extract mixed text and expand instructions in cookbook style."/>
-            <TextBlock x:Name="ModeHint" Text="Offline mode uses Ingredients and Method headings." Foreground="#AAA6A0" FontSize="12" Margin="0,10,0,20"/>
+
+            <TextBlock x:Name="ModeHint" Text="Ollama extracts and formats every recipe. An installed model is required." Foreground="#AAA6A0" FontSize="12" Margin="0,10,0,20"/>
             <TextBlock Text="Ollama server" Style="{StaticResource Caption}"/>
             <TextBox x:Name="EndpointInput" Text="http://localhost:11434" AutomationProperties.Name="Ollama server"/>
             <TextBlock Text="Model" Style="{StaticResource Caption}" Margin="0,17,0,8"/>
@@ -222,10 +207,8 @@ Add-Type -AssemblyName WindowsBase
           </StackPanel>
         </ScrollViewer>
       </Border>
-      <Grid Grid.Column="2">
-        <Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-        <Grid Grid.Row="0">
-          <Grid.ColumnDefinitions><ColumnDefinition Width="*" MinWidth="260"/><ColumnDefinition Width="18"/><ColumnDefinition Width="*" MinWidth="260"/></Grid.ColumnDefinitions>
+        <Grid Grid.Column="2">
+          <Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
           <Border Background="#232221" CornerRadius="12" BorderBrush="#383430" BorderThickness="1" Padding="20">
             <Grid>
               <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
@@ -243,40 +226,41 @@ Add-Type -AssemblyName WindowsBase
               </Grid>
             </Grid>
           </Border>
-          <Border Grid.Column="2" Background="#232221" CornerRadius="12" BorderBrush="#383430" BorderThickness="1" Padding="20">
+          <Button Grid.Row="1" x:Name="ConvertButton" Content="Convert recipe  →" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Right" Margin="0,18,0,0" Padding="24,12" ToolTip="Convert recipe (Ctrl+Enter)"/>
+        </Grid>
+      </Grid>
+      <Grid x:Name="OutputStage" Visibility="Collapsed">
+        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+        <Grid Margin="0,0,0,18">
+          <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+          <Button x:Name="BackButton" Content="← Back to recipe"/>
+          <TextBlock Grid.Column="1" Text="02  /  Review your recipe" FontSize="20" FontWeight="SemiBold" VerticalAlignment="Center" Margin="22,0"/>
+          <Button Grid.Column="2" x:Name="CopyButton" Content="Copy JSON" IsEnabled="False"/>
+          <Button Grid.Column="3" x:Name="SaveButton" Content="Save JSON" IsEnabled="False" Margin="10,0,0,0" Style="{StaticResource PrimaryButton}"/>
+        </Grid>
+        <Grid Grid.Row="1">
+          <Grid.ColumnDefinitions><ColumnDefinition Width="272"/><ColumnDefinition Width="24"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+          <Border Background="#232221" CornerRadius="12" BorderBrush="#383430" BorderThickness="1" Padding="20">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"><StackPanel x:Name="MetadataContent"/></ScrollViewer>
+          </Border>
+          <Border Grid.Column="2" Background="#232221" CornerRadius="12" BorderBrush="#383430" BorderThickness="1" Padding="28">
             <Grid>
-              <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
-              <TextBlock Text="02  /  Ready for Mealie" FontSize="16" FontWeight="SemiBold" Margin="0,7,0,14"/>
-              <TextBlock Grid.Row="1" Text="Check the recipe before adding it to your collection." Style="{StaticResource Caption}" Margin="0,0,0,16"/>
-              <Grid Grid.Row="2">
                 <TabControl x:Name="OutputTabs">
                   <TabItem Header="Recipe preview">
-                    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"><StackPanel x:Name="PreviewContent" Margin="0,4,8,0"/></ScrollViewer>
+                    <ScrollViewer x:Name="PreviewScroll" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"><StackPanel x:Name="PreviewContent" Margin="0,4,8,0"/></ScrollViewer>
                   </TabItem>
                   <TabItem Header="JSON">
                     <TextBox x:Name="JsonOutput" IsReadOnly="True" AcceptsReturn="True" TextWrapping="NoWrap" VerticalContentAlignment="Top" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" FontFamily="Consolas" FontSize="12" Foreground="#DCC2A5" AutomationProperties.Name="Mealie import JSON"/>
                   </TabItem>
                 </TabControl>
-                <Border x:Name="OutputPlaceholder" Background="#232221" Margin="0,54,0,0" IsHitTestVisible="False">
-                  <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="260" Margin="8,0">
-                    <Border Background="#30281F" Width="64" Height="64" CornerRadius="12" HorizontalAlignment="Center" Margin="0,0,0,20">
-                      <Viewbox Width="28" Height="28"><Path Data="M 3 1 L 17 1 L 23 7 L 23 29 L 3 29 Z M 17 1 L 17 8 L 23 8 M 8 14 L 18 14 M 8 19 L 18 19 M 8 24 L 15 24" Stroke="#E58325" StrokeThickness="1.7"/></Viewbox>
-                    </Border>
-                    <TextBlock Text="A new home for your recipe" FontSize="16" FontWeight="SemiBold" TextAlignment="Center"/>
-                    <TextBlock Text="Convert your text to see a readable preview and Mealie-ready JSON here." Foreground="#AAA6A0" TextAlignment="Center" FontSize="13" Margin="0,10,0,0" LineHeight="21"/>
-                  </StackPanel>
-                </Border>
-              </Grid>
+              <Border x:Name="OutputPlaceholder" Background="#232221">
+                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="420">
+                  <TextBlock x:Name="ProgressTitle" Text="Writing your recipe…" FontSize="24" FontWeight="SemiBold" TextAlignment="Center"/>
+                  <TextBlock x:Name="ProgressDetail" Text="Ollama is extracting ingredients, organising the method and checking recipe details." Foreground="#AAA6A0" TextAlignment="Center" Margin="0,16,0,0"/>
+                </StackPanel>
+              </Border>
             </Grid>
           </Border>
-        </Grid>
-        <Grid Grid.Row="1" Margin="0,18,0,0">
-          <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-          <Button x:Name="ConvertButton" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Left" Padding="22,12" ToolTip="Convert recipe (Ctrl+Enter)">
-            <StackPanel Orientation="Horizontal"><TextBlock Text="Convert recipe"/><Path Data="M 0 5 L 12 5 M 7 0 L 12 5 L 7 10" Stroke="#251A10" StrokeThickness="1.7" Width="14" Height="12" Margin="14,2,0,0"/></StackPanel>
-          </Button>
-          <Button Grid.Column="1" x:Name="CopyButton" Content="Copy JSON" IsEnabled="False" Margin="10,0,0,0"/>
-          <Button Grid.Column="2" x:Name="SaveButton" Content="Save JSON" IsEnabled="False" Margin="10,0,0,0"/>
         </Grid>
       </Grid>
     </Grid>
@@ -312,8 +296,8 @@ $workArea=[Windows.SystemParameters]::WorkArea
 $form.Width=[Math]::Max($form.MinWidth,[Math]::Min($form.Width,$workArea.Width-24))
 $form.Height=[Math]::Max($form.MinHeight,[Math]::Min($form.Height,$workArea.Height-24))
 $title=$form.FindName('TitleInput');$source=$form.FindName('SourceInput')
-$ollama=$form.FindName('OllamaToggle');$endpoint=$form.FindName('EndpointInput');$model=$form.FindName('ModelSelect')
-$refresh=$form.FindName('RefreshButton');$modelStatus=$form.FindName('ModelStatus');$modeHint=$form.FindName('ModeHint')
+$endpoint=$form.FindName('EndpointInput');$model=$form.FindName('ModelSelect')
+$refresh=$form.FindName('RefreshButton');$modelStatus=$form.FindName('ModelStatus')
 $inputBox=$form.FindName('RecipeInput');$outputBox=$form.FindName('JsonOutput')
 $convert=$form.FindName('ConvertButton');$copy=$form.FindName('CopyButton');$save=$form.FindName('SaveButton')
 $paste=$form.FindName('PasteButton');$clear=$form.FindName('ClearButton')
@@ -321,6 +305,12 @@ $status=$form.FindName('StatusText')
 $form.FindName('VersionText').Text="v$script:AppVersion"
 $preview=$form.FindName('PreviewContent');$outputPlaceholder=$form.FindName('OutputPlaceholder')
 $inputCount=$form.FindName('InputCount')
+$inputStage=$form.FindName('InputStage');$outputStage=$form.FindName('OutputStage')
+$metadata=$form.FindName('MetadataContent');$back=$form.FindName('BackButton')
+$back.Add_Click({
+    $outputStage.Visibility='Collapsed';$inputStage.Visibility='Visible'
+    [void]$inputBox.Focus()
+})
 $script:worker=$null;$script:pending=$null;$script:modelWorker=$null;$script:modelPending=$null;$script:modelEndpoint=''
 
 function Set-AppStatus([string]$Message,[string]$Kind='ready') {
@@ -334,21 +324,60 @@ function Add-PreviewText([string]$Text,[double]$Size=14,[string]$Colour='#D4CDC5
     $block.FontWeight=$Weight;$block.Margin=$Margin;$block.LineHeight=$Size*1.6
     [void]$preview.Children.Add($block)
 }
+function Add-MetadataBox([string]$Label,[object[]]$Values) {
+    $heading=New-Object Windows.Controls.TextBlock
+    $heading.Text=$Label;$heading.FontSize=11;$heading.FontWeight='SemiBold';$heading.Foreground='#EBA76A';$heading.Margin='0,0,0,10'
+    [void]$metadata.Children.Add($heading)
+    $panel=New-Object Windows.Controls.WrapPanel
+    $panel.Margin='0,0,0,20'
+    if (-not $Values.Count) { $Values=@('None selected') }
+    foreach ($value in $Values) {
+        $box=New-Object Windows.Controls.Border
+        $box.Background='#302C28';$box.BorderBrush='#4B4036';$box.BorderThickness='1';$box.CornerRadius='6';$box.Padding='10,7';$box.Margin='0,0,6,6'
+        $text=New-Object Windows.Controls.TextBlock
+        $text.Text=[string]$value;$text.TextWrapping='Wrap';$text.Foreground='#E4D9CC';$text.MaxWidth=190
+        $box.Child=$text
+        [void]$panel.Children.Add($box)
+    }
+    [void]$metadata.Children.Add($panel)
+}
 function Show-RecipePreview([string]$Json) {
     $recipe=$Json | ConvertFrom-Json -ErrorAction Stop
     $preview.Children.Clear()
     Add-PreviewText $recipe.name 23 '#F4F1ED' 'SemiBold' '0,0,0,10'
-    if ($recipe.recipeYield) { Add-PreviewText ("Yield: " + $recipe.recipeYield) 12 '#EBA76A' }
-    if ($recipe.description) { Add-PreviewText $recipe.description 13 '#AAA6A0' 'Normal' '0,0,0,20' }
-    Add-PreviewText 'Ingredients' 16 '#F4F1ED' 'SemiBold'
-    foreach ($ingredient in $recipe.recipeIngredient) { Add-PreviewText ([char]0x2022 + '  ' + $ingredient) 13 '#D4CDC5' 'Normal' '0,0,0,8' }
-    Add-PreviewText 'Method' 16 '#F4F1ED' 'SemiBold' '0,18,0,12'
+    $metadata.Children.Clear()
+    Add-MetadataBox 'YIELD' @($recipe.recipeYield)
+    $timings=@()
+    foreach ($field in @('prepTime','cookTime','totalTime')) {
+        if ($recipe.$field) {
+            $duration=[System.Xml.XmlConvert]::ToTimeSpan($recipe.$field)
+            $parts=@()
+            if ($duration.Days) { $parts += "$($duration.Days) days" }
+            if ($duration.Hours) { $parts += "$($duration.Hours) hr" }
+            if ($duration.Minutes) { $parts += "$($duration.Minutes) min" }
+            if ($duration.Seconds) { $parts += "$($duration.Seconds) sec" }
+            if (-not $parts.Count) { $parts=@('0 min') }
+            $label=switch ($field) { 'prepTime' {'Prep'} 'cookTime' {'Cook'} 'totalTime' {'Total'} }
+            $timings += ($label + ': ' + ($parts -join ' '))
+        }
+    }
+    Add-MetadataBox 'TIMING' $timings
+    Add-MetadataBox 'CATEGORIES' @($recipe.recipeCategory)
+    Add-MetadataBox 'TAGS' @($recipe.keywords)
+    if ($recipe.comment) { Add-MetadataBox 'REVIEW NOTES' @($recipe.comment) }
+    if ($recipe.PSObject.Properties.Name -contains 'url' -and $recipe.url) { Add-MetadataBox 'SOURCE' @($recipe.url) }
+    if ($recipe.description) { Add-PreviewText $recipe.description 16 '#AAA6A0' 'Normal' '0,0,0,24' }
+    Add-PreviewText 'Ingredients' 20 '#F4F1ED' 'SemiBold'
+    foreach ($ingredient in $recipe.recipeIngredient) { Add-PreviewText ([char]0x2022 + '  ' + $ingredient) 15 '#D4CDC5' 'Normal' '0,0,0,8' }
+    Add-PreviewText 'Method' 20 '#F4F1ED' 'SemiBold' '0,18,0,12'
     $number=0
     foreach ($step in $recipe.recipeInstructions) {
         $number++
         Add-PreviewText ("STEP $number") 10 '#EBA76A' 'SemiBold' '0,4,0,6'
-        Add-PreviewText $step.text 14 '#D4CDC5' 'Normal' '0,0,0,18'
+        Add-PreviewText $step.text 16 '#D4CDC5' 'Normal' '0,0,0,18'
     }
+    $form.FindName('PreviewScroll').ScrollToTop()
+    $metadata.Parent.ScrollToTop()
     $outputPlaceholder.Visibility='Collapsed'
 }
 function Update-InputState {
@@ -399,25 +428,22 @@ $modelTimer.Add_Tick({
 $refresh.Add_Click({ Start-ModelRefresh })
 $endpoint.Add_TextChanged({ $model.Items.Clear();$model.IsEnabled=$false;$endpointTimer.Stop();$endpointTimer.Start() })
 $endpointTimer.Add_Tick({ Start-ModelRefresh })
-function Update-OllamaMode {
-    if ($ollama.IsChecked) {
-        $modeHint.Text='Fuller cookbook-style steps, powered by your Ollama model.'
-        if (-not $model.Items.Count) { Start-ModelRefresh }
-    } else { $modeHint.Text='Offline mode uses Ingredients and Method headings.' }
-}
-$ollama.Add_Checked({ Update-OllamaMode });$ollama.Add_Unchecked({ Update-OllamaMode })
 $form.Add_ContentRendered({ Start-ModelRefresh;[void]$inputBox.Focus() })
 $timer=New-Object Windows.Threading.DispatcherTimer;$timer.Interval=[TimeSpan]::FromMilliseconds(150)
 function Start-RecipeConversion {
-    if ($script:worker) { return }
+    if ($script:worker -or $inputStage.Visibility -ne 'Visible') { return }
     if ([string]::IsNullOrWhiteSpace($inputBox.Text)) { Set-AppStatus 'Paste a recipe to get started.' 'error';[void]$inputBox.Focus();return }
-    if ($ollama.IsChecked -and ($script:modelWorker -or $model.SelectedIndex -lt 0)) { Set-AppStatus 'Select an available Ollama model before converting.' 'error';return }
+    if ($script:modelWorker -or $model.SelectedIndex -lt 0) { Set-AppStatus 'Select an available Ollama model before converting.' 'error';return }
     $copy.IsEnabled=$false;$save.IsEnabled=$false;$outputBox.Clear();$preview.Children.Clear();$outputPlaceholder.Visibility='Visible';$convert.IsEnabled=$false
-    Set-AppStatus $(if ($ollama.IsChecked) {'Writing your cookbook-style recipe...'} else {'Preparing your recipe...'}) 'busy'
+    $metadata.Children.Clear();$inputStage.Visibility='Collapsed';$outputStage.Visibility='Visible'
+    $form.FindName('OutputTabs').SelectedIndex=0
+    $form.FindName('ProgressTitle').Text='Writing your recipe…'
+    $form.FindName('ProgressDetail').Text='Ollama is extracting ingredients, organising the method and checking recipe details.'
+    Set-AppStatus 'Writing your cookbook-style recipe...' 'busy'
     $script:worker=[powershell]::Create()
     $code=${function:Format-RecipeLine}.ToString();$converter=${function:ConvertTo-RecipeJson}.ToString()
     [void]$script:worker.AddScript("function Format-RecipeLine { $code }; function ConvertTo-RecipeJson { $converter }")
-    [void]$script:worker.AddStatement().AddCommand('ConvertTo-RecipeJson').AddParameter('Text',$inputBox.Text).AddParameter('Title',$title.Text).AddParameter('SourceUrl',$source.Text).AddParameter('UseOllama',[bool]$ollama.IsChecked).AddParameter('Endpoint',$endpoint.Text).AddParameter('Model',[string]$model.SelectedItem)
+    [void]$script:worker.AddStatement().AddCommand('ConvertTo-RecipeJson').AddParameter('ClassificationJson',$script:ClassificationJson).AddParameter('Text',$inputBox.Text).AddParameter('Title',$title.Text).AddParameter('SourceUrl',$source.Text).AddParameter('UseOllama',$true).AddParameter('Endpoint',$endpoint.Text).AddParameter('Model',[string]$model.SelectedItem)
     $script:pending=$script:worker.BeginInvoke();$timer.Start()
 }
 $convert.Add_Click({ Start-RecipeConversion })
@@ -432,7 +458,11 @@ $timer.Add_Tick({
             if ($script:worker.HadErrors) { throw ($script:worker.Streams.Error | Out-String) }
             $outputBox.Text=($result -join [Environment]::NewLine);Show-RecipePreview $outputBox.Text
             $copy.IsEnabled=$true;$save.IsEnabled=$true;Set-AppStatus 'Recipe ready. Review quantities and instructions, then copy or save your JSON.'
-        } catch { Set-AppStatus ('Conversion failed: ' + $_.Exception.Message.Trim()) 'error' }
+        } catch {
+            $form.FindName('ProgressTitle').Text='Could not convert this recipe'
+            $form.FindName('ProgressDetail').Text='Use Back to recipe to check the text and Ollama settings, then try again.'
+            Set-AppStatus ('Conversion failed: ' + $_.Exception.Message.Trim()) 'error'
+        }
         finally { $script:worker.Dispose();$script:worker=$null;$script:pending=$null;$convert.IsEnabled=$true }
     }
 })

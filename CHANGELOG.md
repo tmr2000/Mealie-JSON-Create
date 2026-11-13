@@ -1,8 +1,37 @@
-# Changelog
+﻿# Changelog
 
 Notable changes are recorded here, newest first, using [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) categories. Versioning follows the project policy in README.md, based on [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [0.3.0] - 2026-11-13
+
+### Fixed
+
+- Preserve ingredients and numbered method steps from recognised structured source recipes instead of trusting model rewrites; retain cooking alternatives and use source portion counts.
+- Discard descriptions not quoted from source; remove detected contradictory dietary descriptions and unsupported category/planning selections using configured evidence gates. Quick now checks final total time.
+- Use the upper LOW cooking-range bound for recognised structured recipes and repair impossible total times with a disclosed prep-plus-cook estimate.
+- Strengthened whole-recipe Vegetarian/Vegan rules and added configured checks to remove dietary tags contradicted by ingredient tags or recognised ingredient terms, with a review note. Conservative matching can also withhold tags for named plant alternatives.
+- Constrain Ollama duration fields and explain single-value formatting; recover valid ISO duration ranges using the upper bound with a review note instead of failing conversion.
+
+### Added
+
+- Chicken curry regression fixture and adversarial QA checks, with an optional live run against installed Ollama models.
+- Ollama category/tag selection from one editable configuration, shared by the prompt, structured schema and validation; selections appear in the preview and Mealie import JSON.
+- Duplicate removal, canonical label casing and rejection of unknown classification labels; offline mode exports empty classification lists.
+- Future developments document covering configuration editing, required tools, classification review and direct Mealie integration.
+
+- Ollama extraction of prep, cook and total times and yield text, with missing values estimated and identified in a preview/export note.
+- Offline parsing of labelled durations and clear notes for missing metadata.
+- Prep, cook and total times in recipe previews and schema.org JSON exports.
+
+### Changed
+
+- The interface now always uses Ollama; removed the cookbook rewrite toggle and require an available model for every conversion. The offline parser remains available to scripts only.
+- Replaced the split input/output workspace with full-workspace input and review stages, progress/error views and Back navigation preserving recipe text and settings.
+- Enlarged recipe typography and moved yield, human-readable timings, boxed categories/tags, review notes and source attribution to a scrollable review sidebar.
+- Project instructions now require README maintenance and documentation/version consistency checks, with version bumps reserved for requested releases.
+- Categories and tags are implemented; required tools remain planned.
 
 ## [0.2.5] - 2026-11-13
 

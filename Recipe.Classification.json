@@ -1,0 +1,244 @@
+{
+  "categoryRules": "Categories describe how a recipe is served. Choose one primary category, with a second only when clearly useful. Do not classify every main course as Lunch and Dinner; those occasions are deliberately omitted. Empty lists are allowed when nothing fits. Maximum two categories. Every selected category needs positive source support; never add a second category to fill the array. A chicken curry is not Desserts or Cakes & baking. Source validation patterns are conservative evidence gates, not a complete classifier.",
+  "categories": [
+    {
+      "name": "Breakfast & brunch",
+      "description": "Breakfast dishes, porridge, breakfast pancakes and cooked breakfasts"
+    },
+    {
+      "name": "Starters",
+      "description": "Small dishes explicitly served before a main course"
+    },
+    {
+      "name": "Main courses",
+      "description": "The central dish of a meal, including substantial soups and salads"
+    },
+    {
+      "name": "Side dishes",
+      "description": "Accompaniments such as vegetables, rice, potatoes and side salads"
+    },
+    {
+      "name": "Snacks",
+      "description": "Small bites and between-meal food"
+    },
+    {
+      "name": "Desserts",
+      "description": "Sweet dishes served as a dessert"
+    },
+    {
+      "name": "Cakes & baking",
+      "description": "Cakes, biscuits, pastries and sweet baked goods"
+    },
+    {
+      "name": "Bread & dough",
+      "description": "Bread, rolls, flatbreads and dough recipes"
+    },
+    {
+      "name": "Sauces & condiments",
+      "description": "Sauces, dressings, dips, spreads and seasoning mixes"
+    },
+    {
+      "name": "Preserves & pickles",
+      "description": "Jams, chutneys, pickles and other preserved preparations"
+    },
+    {
+      "name": "Drinks",
+      "description": "Smoothies, shakes, hot drinks and other beverages"
+    },
+    {
+      "name": "Basics & components",
+      "description": "Stocks, fillings and other preparations intended for use in another recipe"
+    }
+  ],
+  "tagRules": "Choose every clearly supported tag that adds useful filtering information, generally no more than eight. This is a relevance target, not a reason to discard a clearly applicable tag. Never invent a tag or infer attributes from the title alone when ingredients or instructions contradict them.",
+  "dietaryValidation": [
+    {
+      "removeTags": [
+        "Vegetarian",
+        "Vegan"
+      ],
+      "conflictingTags": [
+        "Chicken",
+        "Turkey",
+        "Beef",
+        "Pork",
+        "Lamb",
+        "Fish",
+        "Seafood"
+      ],
+      "ingredientPattern": "(?i)\\b(chicken|turkey|beef|pork|lamb|duck|goose|venison|rabbit|bacon|ham|pancetta|chorizo|salami|prosciutto|fish|salmon|tuna|cod|haddock|anchov(?:y|ies)|sardines?|prawns?|shrimp|crab|lobster|mussels?|clams?|oysters?|squid|gelatine?|lard|suet|animal[ -]rennet)\\b",
+      "reason": "Meat, fish, seafood or other non-vegetarian ingredient evidence"
+    },
+    {
+      "removeTags": [
+        "Vegan"
+      ],
+      "conflictingTags": [
+        "Eggs"
+      ],
+      "ingredientPattern": "(?i)\\b(eggs?|milk|cream|butter|cheese|yogh?urt|honey|ghee|whey|casein|buttermilk)\\b",
+      "reason": "Egg, dairy, honey or other non-vegan ingredient evidence"
+    }
+  ],
+  "tagGroups": [
+    {
+      "group": "Cuisine",
+      "labels": [
+        "British",
+        "Irish",
+        "Italian",
+        "French",
+        "Spanish",
+        "Greek",
+        "Turkish",
+        "Middle Eastern",
+        "North African",
+        "Indian",
+        "Thai",
+        "Chinese",
+        "Japanese",
+        "Korean",
+        "Vietnamese",
+        "Mexican",
+        "American",
+        "Caribbean"
+      ],
+      "rules": "Use only when the source identifies the cuisine or the recipe has a clear, specific culinary identity. An ingredient alone (such as soy sauce) is insufficient. Omit cuisine when uncertain; this starter list can grow with the collection."
+    },
+    {
+      "group": "Dish type",
+      "labels": [
+        "Soup",
+        "Stew",
+        "Curry",
+        "Salad",
+        "Pasta",
+        "Noodles",
+        "Rice dish",
+        "Pizza",
+        "Pie & tart",
+        "Sandwich & wrap",
+        "Traybake"
+      ],
+      "rules": "These work across serving categories: a soup can be a starter or a main course, for example."
+    },
+    {
+      "group": "Main ingredient",
+      "labels": [
+        "Chicken",
+        "Turkey",
+        "Beef",
+        "Pork",
+        "Lamb",
+        "Fish",
+        "Seafood",
+        "Eggs",
+        "Beans & lentils",
+        "Tofu & tempeh",
+        "Vegetables"
+      ],
+      "rules": "Apply when the ingredient is central to the dish, not a garnish, stock or minor seasoning. Several may apply. Seafood means shellfish and other seafood apart from finfish, which uses Fish."
+    },
+    {
+      "group": "Dietary pattern",
+      "labels": [
+        "Vegetarian",
+        "Vegan"
+      ],
+      "rules": "Check EVERY ingredient, including stocks, sauces, garnishes and optional ingredients, before selecting dietary tags. Vegetarian excludes meat, poultry, fish, seafood, meat stocks, fish sauce, gelatine and animal-rennet cheese. Vegan additionally excludes dairy, eggs, honey and other animal-derived ingredients. Chicken, Turkey, Beef, Pork, Lamb, Fish or Seafood tags must NEVER coexist with Vegetarian or Vegan; Eggs must NEVER coexist with Vegan. A chicken curry with vegetables is neither Vegetarian nor Vegan. A recipe with eggs or dairy may be Vegetarian but is not Vegan. Use the recipe as written, not a possible adaptation: optional meat or a suggested plant-based substitution does not qualify the whole recipe. Apply both Vegetarian and Vegan to vegan recipes so vegetarian filtering also finds them. Withhold these tags if an ambiguous ingredient could change the classification, unless the source specifies a suitable version. Do not silently substitute ingredients to qualify a recipe. Allergen-free, gluten-free and medical-diet tags are deliberately outside this initial list; ordinary recipe text often lacks the product details needed to establish them reliably."
+    },
+    {
+      "group": "Method",
+      "labels": [
+        "One pot",
+        "Air fryer",
+        "Slow cooker",
+        "Pressure cooker",
+        "Barbecue",
+        "No cook"
+      ],
+      "rules": "Apply only when the recipe actually uses the method. A tool tag is useful for filtering even though the same appliance may also appear under Required tools. One pot means one cooking vessel; a mixing bowl does not disqualify it. No cook means no heat is required anywhere in the method. Use Traybake from Dish type for food cooked together on a baking tray."
+    },
+    {
+      "group": "Planning",
+      "labels": [
+        "Quick (30 minutes or less)",
+        "Make ahead",
+        "Freezer friendly"
+      ],
+      "rules": "Quick requires a known or explicitly estimated total elapsed time of at most 30 minutes, including waits. Make ahead requires source guidance on preparing in advance. Freezer friendly requires explicit source freezing guidance; do not guess storage suitability or invent storage instructions."
+    }
+  ],
+  "sourceValidation": [
+    {
+      "field": "categories",
+      "label": "Breakfast & brunch",
+      "sourcePattern": "(?i)\\b(breakfast|brunch|porridge|pancakes?)\\b"
+    },
+    {
+      "field": "categories",
+      "label": "Starters",
+      "sourcePattern": "(?i)\\b(starters?|appeti[sz]ers?|first course)\\b"
+    },
+    {
+      "field": "categories",
+      "label": "Side dishes",
+      "sourcePattern": "(?i)\\b(side dish|accompaniment|serve alongside)\\b"
+    },
+    {
+      "field": "categories",
+      "label": "Snacks",
+      "sourcePattern": "(?i)\\b(snacks?|bites?|nibbles?)\\b"
+    },
+    {
+      "field": "categories",
+      "label": "Desserts",
+      "sourcePattern": "(?i)\\b(desserts?|puddings?|crumble|ice cream|sorbet|sweet tart|cheesecake|cake|brownies?)\\b"
+    },
+    {
+      "field": "categories",
+      "label": "Cakes & baking",
+      "sourcePattern": "(?i)\\b(cakes?|biscuits?|cookies?|brownies?|muffins?|scones?|pastr(?:y|ies)|sweet baking)\\b"
+    },
+    {
+      "field": "categories",
+      "label": "Bread & dough",
+      "sourcePattern": "(?i)\\b(bread|dough|flatbread|rolls?|pizza base)\\b"
+    },
+    {
+      "field": "categories",
+      "label": "Sauces & condiments",
+      "sourcePattern": "(?i)\\b(sauce|condiment|dressing|dip|hummus|pesto|mayonnaise|chutney)\\b"
+    },
+    {
+      "field": "categories",
+      "label": "Preserves & pickles",
+      "sourcePattern": "(?i)\\b(jam|marmalade|preserve|pickle|chutney)\\b"
+    },
+    {
+      "field": "categories",
+      "label": "Drinks",
+      "sourcePattern": "(?i)\\b(drink|smoothie|milkshake|cocktail|tea|coffee|lemonade)\\b"
+    },
+    {
+      "field": "categories",
+      "label": "Basics & components",
+      "sourcePattern": "(?i)\\b(stock|filling|component|base|dough)\\b"
+    },
+    {
+      "field": "tags",
+      "label": "Make ahead",
+      "sourcePattern": "(?im)^\\s*(?:\\d+[.)]\\s*)?(?:make ahead\\s*:|(?:you can |to |this (?:dish|recipe) can be )?(?:prepare|make|cook|assemble)[^.!?\\r\\n]{0,80}\\b(?:in advance|ahead|the day before)\\b)"
+    },
+    {
+      "field": "tags",
+      "label": "Freezer friendly",
+      "sourcePattern": "(?im)^\\s*(?:\\d+[.)]\\s*)?(?:freez(?:e|ing)\\s*:|(?:you can |to )?freeze\\b)"
+    },
+    {
+      "field": "tags",
+      "label": "Quick (30 minutes or less)",
+      "maxTotalMinutes": 30
+    }
+  ]
+}
