@@ -1,0 +1,82 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: windows-2022
+    timeout-minutes: 25
+    defaults:
+      run:
+        shell: powershell
+    env:
+      GH_TOKEN: ${{ github.token }}
+      RELEASE_TAG: ${{ github.ref_name }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate version, notes and unused release
+        run: |
+          $ErrorActionPreference='Stop'
+          $metadata=.\Get-ReleaseMetadata.ps1 -Tag $env:RELEASE_TAG
+          "RELEASE_VERSION=$($metadata.Version)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          $headers=@{Authorization="Bearer $env:GH_TOKEN";'User-Agent'='MealieJsonCreate-Release';Accept='application/vnd.github+json'}
+          try {
+            $null=Invoke-RestMethod -Uri "https://api.github.com/repos/$env:GITHUB_REPOSITORY/releases/tags/$env:RELEASE_TAG" -Headers $headers
+          } catch {
+            if ($_.Exception.Response -and [int]$_.Exception.Response.StatusCode -eq 404) { exit 0 }
+            throw
+          }
+          throw 'A release already exists for this tag. It will not be overwritten.'
+      - name: Run deterministic checks
+        run: |
+          $ErrorActionPreference='Stop'
+          foreach ($test in @('Test-Core.ps1','Test-Update.ps1','Test-Release.ps1','Test-ReleaseWizard.ps1','Test-RecipeQa.ps1','Test-SourceQa.ps1')) {
+            & powershell.exe -NoProfile -File $test
+            if ($LASTEXITCODE -ne 0) { throw "$test failed" }
+          }
+          & powershell.exe -NoProfile -STA -File .\Test-Gui.ps1
+          if ($LASTEXITCODE -ne 0) { throw 'GUI checks failed' }
+      - name: Install build dependency and build both executables
+        run: |
+          $ErrorActionPreference='Stop'
+          [Net.ServicePointManager]::SecurityProtocol=[Net.SecurityProtocolType]::Tls12
+          Install-PackageProvider NuGet -MinimumVersion 2.8.5.201 -Force -Scope CurrentUser | Out-Null
+          Install-Module ps2exe -RequiredVersion 1.0.18 -Scope CurrentUser -Force
+          choco install innosetup --yes --no-progress
+          if ($LASTEXITCODE -notin @(0,3010)) { throw 'Inno Setup installation failed' }
+          $compiler=Get-ChildItem "${env:ProgramFiles(x86)}\Inno Setup*\ISCC.exe" | Select-Object -First 1
+          if (-not $compiler) { throw 'Inno Setup compiler not found' }
+          .\Build.ps1 -Installer -IsccPath $compiler.FullName
+          foreach ($name in @("MealieJsonCreate-$env:RELEASE_VERSION.exe","MealieJsonCreate-$env:RELEASE_VERSION-Setup.exe")) {
+            if (-not (Test-Path -LiteralPath "dist\$name")) { throw "Missing build output: $name" }
+          }
+      - name: Retain build artifacts for inspection
+        uses: actions/upload-artifact@v4
+        with:
+          name: MealieJsonCreate-${{ env.RELEASE_VERSION }}
+          path: |
+            dist/*.exe
+            dist/release-notes.md
+          if-no-files-found: error
+      - name: Create complete draft, then publish release
+        run: |
+          $ErrorActionPreference='Stop'
+          $portable="dist/MealieJsonCreate-$env:RELEASE_VERSION.exe"
+          $installer="dist/MealieJsonCreate-$env:RELEASE_VERSION-Setup.exe"
+          $releaseArgs=@('release','create',$env:RELEASE_TAG,$portable,$installer,'--verify-tag','--draft','--title',"Mealie JSON Create $env:RELEASE_VERSION",'--notes-file','dist/release-notes.md')
+          if ($env:RELEASE_VERSION -match '-rc\.') { $releaseArgs+='--prerelease' }
+          & gh @releaseArgs
+          if ($LASTEXITCODE -ne 0) { throw 'Draft creation/upload failed. Inspect Releases before retrying.' }
+          $latest=if ($env:RELEASE_VERSION -match '-rc\.') { '--latest=false' } else { '--latest' }
+          & gh release edit $env:RELEASE_TAG --draft=false $latest
+          if ($LASTEXITCODE -ne 0) { throw 'Publication failed; the draft is retained for inspection.' }

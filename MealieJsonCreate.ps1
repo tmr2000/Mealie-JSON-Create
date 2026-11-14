@@ -3,6 +3,7 @@ param([switch]$CoreOnly)
 
 # Embedded at build time for a single-file executable; dot-source for development.
 . "$PSScriptRoot\Recipe.Core.ps1"
+. "$PSScriptRoot\Recipe.Update.ps1"
 if ($CoreOnly) { return }
 if ([Threading.Thread]::CurrentThread.ApartmentState -ne 'STA') {
     throw 'Start the app with: powershell.exe -NoProfile -STA -File .\MealieJsonCreate.ps1'
@@ -249,6 +250,9 @@ Add-Type -AssemblyName WindowsBase
                   <TabItem Header="Recipe preview">
                     <ScrollViewer x:Name="PreviewScroll" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"><StackPanel x:Name="PreviewContent" Margin="0,4,8,0"/></ScrollViewer>
                   </TabItem>
+                  <TabItem Header="Edit details">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel x:Name="EditContent" Margin="4,4,12,4"/></ScrollViewer>
+                  </TabItem>
                   <TabItem Header="JSON">
                     <TextBox x:Name="JsonOutput" IsReadOnly="True" AcceptsReturn="True" TextWrapping="NoWrap" VerticalContentAlignment="Top" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" FontFamily="Consolas" FontSize="12" Foreground="#DCC2A5" AutomationProperties.Name="Mealie import JSON"/>
                   </TabItem>
@@ -257,6 +261,7 @@ Add-Type -AssemblyName WindowsBase
                 <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="420">
                   <TextBlock x:Name="ProgressTitle" Text="Writing your recipe…" FontSize="24" FontWeight="SemiBold" TextAlignment="Center"/>
                   <TextBlock x:Name="ProgressDetail" Text="Ollama is extracting ingredients, organising the method and checking recipe details." Foreground="#AAA6A0" TextAlignment="Center" Margin="0,16,0,0"/>
+                  <ProgressBar x:Name="GenerationProgress" Width="280" Height="8" Margin="0,24,0,0" Foreground="#E58325" Background="#39322B" BorderThickness="0" IsIndeterminate="False" Visibility="Collapsed" AutomationProperties.Name="Recipe conversion in progress"/>
                 </StackPanel>
               </Border>
             </Grid>
@@ -269,7 +274,7 @@ Add-Type -AssemblyName WindowsBase
         <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
         <TextBlock x:Name="VersionText" Foreground="#AAA6A0" FontSize="12" VerticalAlignment="Center"/>
         <TextBlock Grid.Column="1" x:Name="StatusText" Text="" Margin="24,0" Foreground="#BBB3A9" FontSize="12" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
-        <TextBlock Grid.Column="2" Text="schema.org Recipe  /  UTF-8" Foreground="#8D857B" FontSize="11" VerticalAlignment="Center"/>
+        <Button Grid.Column="2" x:Name="UpdateButton" Content="Check for updates" Style="{StaticResource QuietButton}" FontSize="12"/>
       </Grid>
     </Border>
   </Grid>
@@ -307,6 +312,7 @@ $preview=$form.FindName('PreviewContent');$outputPlaceholder=$form.FindName('Out
 $inputCount=$form.FindName('InputCount')
 $inputStage=$form.FindName('InputStage');$outputStage=$form.FindName('OutputStage')
 $metadata=$form.FindName('MetadataContent');$back=$form.FindName('BackButton')
+$generationProgress=$form.FindName('GenerationProgress')
 $back.Add_Click({
     $outputStage.Visibility='Collapsed';$inputStage.Visibility='Visible'
     [void]$inputBox.Focus()
@@ -341,8 +347,69 @@ function Add-MetadataBox([string]$Label,[object[]]$Values) {
     }
     [void]$metadata.Children.Add($panel)
 }
+function Show-MetadataEditor($Recipe) {
+    $panel=$form.FindName('EditContent');$panel.Children.Clear()
+    $script:detailInputs=@{};$script:detailChoices=@{}
+    $hint=New-Object Windows.Controls.TextBlock
+    $hint.Text='Edit details, then apply before copying or saving. Blank values are allowed. Times are in minutes (0 means no time).';$hint.TextWrapping='Wrap';$hint.Margin='0,0,0,16'
+    [void]$panel.Children.Add($hint)
+    foreach ($field in @('recipeYield','prepTime','cookTime','totalTime')) {
+        $label=New-Object Windows.Controls.TextBlock
+        $label.Text=switch ($field) { 'recipeYield' {'Yield (for example 4 servings)'} 'prepTime' {'Prep time (minutes)'} 'cookTime' {'Cook time (minutes)'} 'totalTime' {'Total time (minutes)'} }
+        [void]$panel.Children.Add($label)
+        $input=New-Object Windows.Controls.TextBox;$input.Margin='0,4,0,12'
+        $input.Text=if ($field -eq 'recipeYield') { $Recipe.$field } elseif ($Recipe.$field) { [System.Xml.XmlConvert]::ToTimeSpan($Recipe.$field).TotalMinutes.ToString([Globalization.CultureInfo]::InvariantCulture) } else { '' }
+        $input.Add_TextChanged({$copy.IsEnabled=$false;$save.IsEnabled=$false;Set-AppStatus 'Apply detail changes before exporting.'})
+        $script:detailInputs[$field]=$input;[void]$panel.Children.Add($input)
+    }
+    $config=$script:ClassificationJson | ConvertFrom-Json
+    foreach ($field in @('recipeCategory','keywords')) {
+        $label=New-Object Windows.Controls.TextBlock
+        $label.Text=if ($field -eq 'recipeCategory') { 'Categories (up to two)' } else { 'Tags' }
+        $label.Margin='0,12,0,8';[void]$panel.Children.Add($label)
+        $choices=New-Object Windows.Controls.WrapPanel
+        $script:detailChoices[$field]=@()
+        $labels=if ($field -eq 'recipeCategory') { @($config.categories | ForEach-Object { $_.name }) } else { @($config.tagGroups | ForEach-Object { $_.labels }) }
+        foreach ($name in $labels) {
+            $choice=New-Object Windows.Controls.CheckBox;$choice.Content=$name;$choice.IsChecked=($Recipe.$field -contains $name);$choice.Margin='0,0,16,10';$choice.Foreground='#E4D9CC'
+            $choice.Add_Click({$copy.IsEnabled=$false;$save.IsEnabled=$false;Set-AppStatus 'Apply detail changes before exporting.'})
+            $script:detailChoices[$field]+=$choice;[void]$choices.Children.Add($choice)
+        }
+        [void]$panel.Children.Add($choices)
+    }
+    $script:applyDetails=New-Object Windows.Controls.Button;$script:applyDetails.Content='Apply details';$script:applyDetails.Margin='0,16,0,12';$script:applyDetails.HorizontalAlignment='Left'
+    $script:applyDetails.Add_Click({Apply-RecipeDetails})
+    [void]$panel.Children.Add($script:applyDetails)
+}
+function Apply-RecipeDetails {
+    try {
+        $edited=$outputBox.Text | ConvertFrom-Json
+        $edited.recipeYield=$script:detailInputs.recipeYield.Text.Trim()
+        foreach ($field in @('prepTime','cookTime','totalTime')) {
+            $value=$script:detailInputs[$field].Text.Trim()
+            $edited.$field=''
+            if ($value) {
+                $minutes=0.0
+                if (-not [double]::TryParse($value,[Globalization.NumberStyles]::AllowDecimalPoint,[Globalization.CultureInfo]::InvariantCulture,[ref]$minutes) -or [double]::IsInfinity($minutes) -or $minutes -lt 0) { throw 'Enter a non-negative number of minutes or leave the time blank.' }
+                $edited.$field=[System.Xml.XmlConvert]::ToString([TimeSpan]::FromMinutes($minutes))
+            }
+        }
+        foreach ($field in @('recipeCategory','keywords')) { $edited.$field=@($script:detailChoices[$field] | Where-Object { $_.IsChecked } | ForEach-Object { [string]$_.Content }) }
+        if ($edited.recipeCategory.Count -gt 2) { throw 'Select at most two categories.' }
+        if ($edited.totalTime) {
+            foreach ($field in @('prepTime','cookTime')) {
+                if ($edited.$field -and [System.Xml.XmlConvert]::ToTimeSpan($edited.$field) -gt [System.Xml.XmlConvert]::ToTimeSpan($edited.totalTime)) { throw 'Total time must be at least as long as prep or cook time individually.' }
+            }
+        }
+        $outputBox.Text=$edited | ConvertTo-Json -Depth 12
+        Show-RecipePreview $outputBox.Text
+        $copy.IsEnabled=$true;$save.IsEnabled=$true
+        Set-AppStatus 'Details applied. Preview and JSON updated.'
+    } catch { Set-AppStatus $_.Exception.Message 'error' }
+}
 function Show-RecipePreview([string]$Json) {
     $recipe=$Json | ConvertFrom-Json -ErrorAction Stop
+    Show-MetadataEditor $recipe
     $preview.Children.Clear()
     Add-PreviewText $recipe.name 23 '#F4F1ED' 'SemiBold' '0,0,0,10'
     $metadata.Children.Clear()
@@ -364,7 +431,14 @@ function Show-RecipePreview([string]$Json) {
     Add-MetadataBox 'TIMING' $timings
     Add-MetadataBox 'CATEGORIES' @($recipe.recipeCategory)
     Add-MetadataBox 'TAGS' @($recipe.keywords)
-    if ($recipe.comment) { Add-MetadataBox 'REVIEW NOTES' @($recipe.comment) }
+    if ($recipe.comment) {
+        $notes=$recipe.comment
+        if ($notes -match '^QA:[^\r\n]+') {
+            Add-MetadataBox 'QA SUMMARY' @($Matches[0].Substring(4))
+            $notes=$notes.Substring($Matches[0].Length).Trim()
+        }
+        if ($notes) { Add-MetadataBox 'REVIEW NOTES' @($notes) }
+    }
     if ($recipe.PSObject.Properties.Name -contains 'url' -and $recipe.url) { Add-MetadataBox 'SOURCE' @($recipe.url) }
     if ($recipe.description) { Add-PreviewText $recipe.description 16 '#AAA6A0' 'Normal' '0,0,0,24' }
     Add-PreviewText 'Ingredients' 20 '#F4F1ED' 'SemiBold'
@@ -437,6 +511,7 @@ function Start-RecipeConversion {
     $copy.IsEnabled=$false;$save.IsEnabled=$false;$outputBox.Clear();$preview.Children.Clear();$outputPlaceholder.Visibility='Visible';$convert.IsEnabled=$false
     $metadata.Children.Clear();$inputStage.Visibility='Collapsed';$outputStage.Visibility='Visible'
     $form.FindName('OutputTabs').SelectedIndex=0
+    $generationProgress.Visibility='Visible';$generationProgress.IsIndeterminate=$true
     $form.FindName('ProgressTitle').Text='Writing your recipe…'
     $form.FindName('ProgressDetail').Text='Ollama is extracting ingredients, organising the method and checking recipe details.'
     Set-AppStatus 'Writing your cookbook-style recipe...' 'busy'
@@ -463,7 +538,10 @@ $timer.Add_Tick({
             $form.FindName('ProgressDetail').Text='Use Back to recipe to check the text and Ollama settings, then try again.'
             Set-AppStatus ('Conversion failed: ' + $_.Exception.Message.Trim()) 'error'
         }
-        finally { $script:worker.Dispose();$script:worker=$null;$script:pending=$null;$convert.IsEnabled=$true }
+        finally {
+            $generationProgress.IsIndeterminate=$false;$generationProgress.Visibility='Collapsed'
+            $script:worker.Dispose();$script:worker=$null;$script:pending=$null;$convert.IsEnabled=$true
+        }
     }
 })
 $copy.Add_Click({ try { [Windows.Clipboard]::SetText($outputBox.Text);Set-AppStatus 'JSON copied. Paste it into Mealie''s HTML/JSON import.' } catch { Set-AppStatus 'Could not copy JSON. Try again or save it as a file.' 'error' } })
@@ -477,4 +555,5 @@ $form.Add_Closed({
     if ($script:worker) { $script:worker.Stop();$script:worker.Dispose() }
     if ($script:modelWorker) { $script:modelWorker.Stop();$script:modelWorker.Dispose() }
 })
+. "$PSScriptRoot\Recipe.UpdateUi.ps1"
 [void]$form.ShowDialog()

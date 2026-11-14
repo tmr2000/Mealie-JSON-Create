@@ -4,6 +4,40 @@ Notable changes are recorded here, newest first, using [Keep a Changelog](https:
 
 ## [Unreleased]
 
+## [0.4.0-rc.1] - 2026-11-14
+
+### Added
+
+- Interactive reusable release wizard: prepare version/dated changelog/README, run local checks, review notes and changed files, then explicitly confirm staging, committing and pushing the release. Includes prepare-only mode, resuming a prepared version and carrying candidate notes into the stable final.
+- Tag-triggered GitHub Actions release pipeline, changelog-derived release notes and an explicit release push helper; builds and publishes portable/installer EXEs, marking release candidates as prereleases without overwriting existing releases.
+- Program Files installer build with Start menu/optional desktop shortcuts and uninstall support; background stable-release checks and verified, user-initiated installer updates from GitHub.
+- Review-screen detail editor for yield, timings and approved category/tag selections; applying edits updates preview and export JSON.
+
+### Changed
+
+- Missing yield, timings, categories and tags no longer block conversion; unknown yield remains blank. Pending edits must be applied before export.
+
+## [0.3.1-rc.2] - 2026-11-14
+
+### Fixed
+
+- Accept plain ingredient lines and blank-line-separated method paragraphs without requiring bullets; preserve copied indentation boundaries, wrapped paragraphs and uncolonised Serves values. Added steak pie regression coverage.
+- Preserve grouped ingredients, bulleted methods and indented continuation lines; stop at recognised notes/equipment/nutrition boundaries and retain source notes.
+- Prefer labelled source times and yield, discard model-written metadata explanations, and block ambiguous explicit recipe sections or inconsistent supplied total times.
+- Gate dish-type tags against source vocabulary and appliance tags against positive parsed-method evidence, excluding equipment-only and known negated mentions.
+
+### Added
+
+- Separate QA summary in the preview and shepherd’s pie regression checks covering ingredient/step loss, source metadata, notes and false appliance claims.
+
+
+## [0.3.1-rc.1] - 2026-11-13
+
+### Added
+
+- Animated activity bar beneath the existing conversion message while Ollama runs; stops and hides on success or failure without implying percentage completion.
+- Release-candidate build versions using -rc.N in the app footer, changelog and output filenames, with numeric Windows file metadata derived from the base version.
+
 ## [0.3.0] - 2026-11-13
 
 ### Fixed

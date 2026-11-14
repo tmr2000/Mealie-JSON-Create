@@ -93,3 +93,9 @@ The chicken curry regression fixture must not retain Desserts, Cakes & baking, V
 `Recipe.Classification.json` supplies the Ollama prompt, schema enums and response validation. Categories and tags appear in the preview and export as `recipeCategory` and `keywords`. Duplicate selections are removed, casing is normalised and unknown labels cause a validation error. Offline conversion returns empty classification lists. Source runs load configuration at startup; builds embed it for single-file distribution.
 
 See [FUTURE-DEVELOPMENTS.md](FUTURE-DEVELOPMENTS.md) for follow-on work, including a configuration editor and required tools.
+
+## Additional source safeguards (Unreleased)
+
+Dish-type selections now require matching source vocabulary. Slow cooker, Pressure cooker, Air fryer and Barbecue require positive parsed-method evidence rather than equipment-list mentions; known negated uses are withheld. Configuration entries use `scope: "method"` for method-only matching and optional `excludePattern` for conservative negative evidence. With no recognised source method, those appliance labels are omitted. These gates remove selections only; they do not infer or force missing tags, and cannot fully determine semantic relevance.
+
+The shepherd’s pie regression preserves all 21 ingredient entries across Lamb/Mash groups and six steps, uses supplied durations/yield, and removes Curry/Slow cooker/Pressure cooker. Model metadata notes are not trusted evidence.

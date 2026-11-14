@@ -15,7 +15,7 @@ function ConvertTo-RecipeJson {
     if (-not $UseOllama) { throw 'GUI must always use Ollama' }
     if ($Text -eq 'Not a complete recipe') { throw 'Missing ingredients and method' }
     Start-Sleep -Milliseconds 300
-    '{"name":"Tomato & basil pasta","description":"A simple supper with a rich tomato sauce.","recipeYield":"2 servings","prepTime":"PT10M","cookTime":"PT20M","totalTime":"PT30M","comment":"Times estimated.","recipeCategory":["Main courses"],"keywords":["Pasta","Italian"],"recipeIngredient":["200 g pasta","1 tin chopped tomatoes","1 handful fresh basil"],"recipeInstructions":[{"text":"Cook the pasta according to the packet instructions. Drain well, then return it to the pan."},{"text":"Add the tomatoes and stir until the pasta is coated. Fold through the basil and serve."}]}'
+    '{"name":"Tomato & basil pasta","description":"A simple supper with a rich tomato sauce.","recipeYield":"2 servings","prepTime":"PT10M","cookTime":"PT20M","totalTime":"PT30M","comment":"QA: 3 ingredients preserved; 2 steps preserved.\n\nTimes estimated.","recipeCategory":["Main courses"],"keywords":["Pasta","Italian"],"recipeIngredient":["200 g pasta","1 tin chopped tomatoes","1 handful fresh basil"],"recipeInstructions":[{"text":"Cook the pasta according to the packet instructions. Drain well, then return it to the pan."},{"text":"Add the tomatoes and stir until the pasta is coated. Fold through the basil and serve."}]}'
 }
 function Click-Button($Button) {
     $Button.RaiseEvent([Windows.RoutedEventArgs]::new([Windows.Controls.Button]::ClickEvent))
@@ -101,6 +101,7 @@ $check.Add_Tick({
             }
             5 {
                 if ($copy.IsEnabled) {
+                    if ($generationProgress.IsIndeterminate -or $generationProgress.Visibility -ne 'Collapsed') { throw 'Progress bar still running after success' }
                     $r=$outputBox.Text | ConvertFrom-Json
                     if ($r.name -ne 'Tomato & basil pasta' -or $r.recipeIngredient.Count -ne 3) { throw 'GUI conversion failed' }
                     if ($preview.Children.Count -lt 10 -or $outputPlaceholder.Visibility -ne 'Collapsed' -or -not $save.IsEnabled) { throw 'Recipe preview failed' }
@@ -108,6 +109,7 @@ $check.Add_Tick({
                     $r | Add-Member -NotePropertyName keywords -NotePropertyValue @('Pasta','Italian') -Force
                     Show-RecipePreview ($r | ConvertTo-Json -Depth 12)
                     $chipText=@($metadata.Children | Where-Object { $_ -is [Windows.Controls.WrapPanel] } | ForEach-Object { $_.Children } | ForEach-Object { $_.Child.Text })
+                    if (@($metadata.Children | Where-Object { $_ -is [Windows.Controls.TextBlock] -and $_.Text -eq 'QA SUMMARY' }).Count -ne 1 -or $chipText -notcontains '3 ingredients preserved; 2 steps preserved.') { throw 'QA summary not presented separately' }
                     if ($chipText -notcontains 'Main courses' -or $chipText -notcontains 'Italian') { throw 'Classification chips failed' }
                     if ($inputStage.Visibility -ne 'Collapsed' -or $outputStage.Visibility -ne 'Visible') { throw 'Output stage failed' }
                     $endpoint.Text='http://localhost:11434';$script:guiStage=6
@@ -117,7 +119,20 @@ $check.Add_Tick({
                 if (-not $script:modelWorker -and $model.Items.Count -eq 6) {
                     if ($status.Text -notlike 'Recipe ready*') { throw 'Model discovery overwrote conversion status' }
                     Save-UiSnapshot 'recipe.png'
-                    $form.FindName('OutputTabs').SelectedIndex=1;$script:guiStage=7
+                    $script:detailInputs.recipeYield.Text='6 servings'
+                    $script:detailInputs.prepTime.Text=''
+                    $script:detailInputs.cookTime.Text='25'
+                    $script:detailInputs.totalTime.Text='35'
+                    foreach ($choice in $script:detailChoices.keywords) { $choice.IsChecked=([string]$choice.Content -eq 'Soup') }
+                    foreach ($choice in $script:detailChoices.recipeCategory) { $choice.IsChecked=$false }
+                    if ($copy.IsEnabled -or $save.IsEnabled) { throw 'Pending edits allow export' }
+                    Click-Button $script:applyDetails
+                    $edited=$outputBox.Text | ConvertFrom-Json
+                    if ($edited.recipeYield -ne '6 servings' -or $edited.prepTime -or $edited.cookTime -ne 'PT25M' -or $edited.recipeCategory.Count -or $edited.keywords.Count -ne 1 -or $edited.keywords[0] -ne 'Soup' -or -not $copy.IsEnabled) { throw 'Manual detail edits failed' }
+                    $script:detailInputs.totalTime.Text='invalid';Click-Button $script:applyDetails
+                    if ($copy.IsEnabled -or $outputBox.Text -notmatch '6 servings') { throw 'Invalid edit was applied' }
+                    $script:detailInputs.totalTime.Text='35';Click-Button $script:applyDetails
+                    $form.FindName('OutputTabs').SelectedIndex=2;$script:guiStage=7
                 }
             }
             7 { Save-UiSnapshot 'json.png';$form.Width=$form.MinWidth;$form.Height=$form.MinHeight;$script:guiStage=8 }
@@ -143,11 +158,14 @@ $check.Add_Tick({
                 if (-not $script:modelWorker -and $model.Items.Count -eq 6) {
                     Click-Button $convert
                     if ($outputStage.Visibility -ne 'Visible' -or $inputStage.Visibility -ne 'Collapsed' -or $copy.IsEnabled) { throw 'Conversion progress stage failed' }
+                    if (-not $generationProgress.IsIndeterminate -or $generationProgress.Visibility -ne 'Visible') { throw 'Progress bar not running during conversion' }
+                    Save-UiSnapshot 'progress.png'
                     $script:guiStage=5
                 }
             }
             9 {
                 if ($status.Text -like 'Conversion failed*') {
+                    if ($generationProgress.IsIndeterminate -or $generationProgress.Visibility -ne 'Collapsed') { throw 'Progress bar still running after failure' }
                     if ($copy.IsEnabled -or $save.IsEnabled -or $preview.Children.Count) { throw 'Stale output left enabled after failure' }
                     Write-Host 'WPF checks passed: models, refresh, dropdown, mandatory AI, stage navigation, errors, conversion, preview, tabs, compact layout and clear.'
                     $check.Stop();$form.Close()
@@ -164,6 +182,9 @@ if ($script:guiFailure) { throw $script:guiFailure }
 '@
 $source=$source.Replace('[void]$form.ShowDialog()',$smoke)
 $source=$source.Replace('. "$PSScriptRoot\Recipe.Core.ps1"',(". '" + $PSScriptRoot + "\Recipe.Core.ps1'"))
+foreach ($file in @('Recipe.Update.ps1','Recipe.UpdateUi.ps1')) {
+    $source=$source.Replace(('. "$PSScriptRoot\' + $file + '"'),(". '" + $PSScriptRoot.Replace("'","''") + '\' + $file + "'"))
+}
 $iconPath=Join-Path $PSScriptRoot 'Assets\MealieJsonCreate.ico'
 $source=$source.Replace("(Join-Path `$PSScriptRoot 'Assets\MealieJsonCreate.ico')", ("'" + $iconPath.Replace("'", "''") + "'"))
 & ([scriptblock]::Create($source))

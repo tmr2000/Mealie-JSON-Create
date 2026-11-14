@@ -239,6 +239,89 @@
       "field": "tags",
       "label": "Quick (30 minutes or less)",
       "maxTotalMinutes": 30
+    },
+    {
+      "field": "tags",
+      "label": "Slow cooker",
+      "scope": "method",
+      "sourcePattern": "(?i)\\b(?:put|place|add|cook|transfer|use|set)\\b[^.!?\\r\\n]*\\bslow cooker\\b|\\bslow[- ]cook\\b",
+      "excludePattern": "(?i)\\b(?:not|never|avoid|without)\\b[^.!?\\r\\n]*\\bslow cooker"
+    },
+    {
+      "field": "tags",
+      "label": "Pressure cooker",
+      "scope": "method",
+      "sourcePattern": "(?i)\\bpressure[- ]cook(?:er|ing)?\\b",
+      "excludePattern": "(?i)\\b(?:not|never|avoid|without)\\b[^.!?\\r\\n]*\\bpressure"
+    },
+    {
+      "field": "tags",
+      "label": "Air fryer",
+      "scope": "method",
+      "sourcePattern": "(?i)\\bair[- ]fr(?:y|yer|ying)\\b",
+      "excludePattern": "(?i)\\b(?:not|never|avoid|without)\\b[^.!?\\r\\n]*\\bair"
+    },
+    {
+      "field": "tags",
+      "label": "Barbecue",
+      "scope": "method",
+      "sourcePattern": "(?i)\\b(?:barbecue|bbq|barbecuing)\\b",
+      "excludePattern": "(?i)\\b(?:not|never|avoid|without)\\b[^.!?\\r\\n]*\\bbarbecue|bbq"
+    },
+    {
+      "field": "tags",
+      "label": "Soup",
+      "sourcePattern": "(?i)\\b(soups?)\\b"
+    },
+    {
+      "field": "tags",
+      "label": "Stew",
+      "sourcePattern": "(?i)\\b(stews?)\\b"
+    },
+    {
+      "field": "tags",
+      "label": "Curry",
+      "sourcePattern": "(?i)\\b(curr(?:y|ies))\\b"
+    },
+    {
+      "field": "tags",
+      "label": "Salad",
+      "sourcePattern": "(?i)\\b(salads?)\\b"
+    },
+    {
+      "field": "tags",
+      "label": "Pasta",
+      "sourcePattern": "(?i)\\b(pasta|spaghetti|penne|lasagne|lasagna|macaroni|tagliatelle)\\b"
+    },
+    {
+      "field": "tags",
+      "label": "Noodles",
+      "sourcePattern": "(?i)\\b(noodles?)\\b"
+    },
+    {
+      "field": "tags",
+      "label": "Rice dish",
+      "sourcePattern": "(?i)\\b(rice|risotto|paella)\\b"
+    },
+    {
+      "field": "tags",
+      "label": "Pizza",
+      "sourcePattern": "(?i)\\b(pizza)\\b"
+    },
+    {
+      "field": "tags",
+      "label": "Pie & tart",
+      "sourcePattern": "(?i)\\b(pie|pies|tarts?)\\b"
+    },
+    {
+      "field": "tags",
+      "label": "Sandwich & wrap",
+      "sourcePattern": "(?i)\\b(sandwich|wraps?|burrito)\\b"
+    },
+    {
+      "field": "tags",
+      "label": "Traybake",
+      "sourcePattern": "(?i)\\b(traybake|tray bake)\\b"
     }
   ]
 }
