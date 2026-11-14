@@ -4,6 +4,10 @@ Notable changes are recorded here, newest first, using [Keep a Changelog](https:
 
 ## [Unreleased]
 
+### Fixed
+
+- Allow manually starting the Release workflow for an existing version tag if its original push did not trigger a run; build the tagged source and retain the existing-release overwrite protection.
+
 ## [0.4.0-rc.1] - 2026-11-14
 
 ### Added

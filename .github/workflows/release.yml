@@ -1,6 +1,12 @@
 name: Release
 
 on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing release tag to build (for example v0.4.0-rc.1)'
+        required: true
+        type: string
   push:
     tags:
       - 'v*'
@@ -9,7 +15,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: release-${{ github.ref }}
+  group: release-${{ inputs.tag || github.ref_name }}
   cancel-in-progress: false
 
 jobs:
@@ -21,9 +27,11 @@ jobs:
         shell: powershell
     env:
       GH_TOKEN: ${{ github.token }}
-      RELEASE_TAG: ${{ github.ref_name }}
+      RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.RELEASE_TAG }}
       - name: Validate version, notes and unused release
         run: |
           $ErrorActionPreference='Stop'
