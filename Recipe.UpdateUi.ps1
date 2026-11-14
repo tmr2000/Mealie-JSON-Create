@@ -10,6 +10,11 @@ $updateTimer.Interval=[TimeSpan]::FromMilliseconds(250)
 function Start-AppUpdateWork([string]$Action) {
     if ($script:updateWorker) { return }
     $script:updateAction=$Action
+    if ($Action -eq 'check') {
+        $script:availableUpdate=$null
+        $script:downloadedInstaller=$null
+        $updateButton.Visibility='Collapsed'
+    }
     $updateButton.IsEnabled=$false
     $updateButton.Content=if ($Action -eq 'download') { 'Downloading update...' } else { 'Checking updates...' }
     $script:updateWorker=[powershell]::Create()
@@ -28,15 +33,17 @@ $updateTimer.Add_Tick({
         if ($script:updateWorker.HadErrors) { throw ($script:updateWorker.Streams.Error | Out-String) }
         if ($script:updateAction -eq 'check') {
             $script:availableUpdate=if ($result.Count) { $result[0] } else { $null }
-            $updateButton.Content=if ($script:availableUpdate) { "Update to $($script:availableUpdate.Version)" } else { 'Check for updates' }
-            $updateButton.ToolTip=if ($script:availableUpdate) { 'Download the verified installer from GitHub.' } else { 'No newer stable release with a verified installer is available.' }
+            $updateButton.Visibility=if ($script:availableUpdate) { 'Visible' } else { 'Collapsed' }
+            $updateButton.Content='Update available'
+            $updateButton.ToolTip=if ($script:availableUpdate) { "Version $($script:availableUpdate.Version) is available. Download the verified installer from GitHub." } else { $null }
         } else {
             $script:downloadedInstaller=[string]$result[0]
             $updateButton.Content='Install update'
             $updateButton.ToolTip='Installer downloaded and verified. Save your recipe before installing.'
         }
     } catch {
-        $updateButton.Content=if ($script:availableUpdate) { "Update to $($script:availableUpdate.Version)" } else { 'Check for updates' }
+        $updateButton.Visibility=if ($script:availableUpdate) { 'Visible' } else { 'Collapsed' }
+        $updateButton.Content='Update available'
         $updateButton.ToolTip=('Update failed; you can retry. ' + $_.Exception.Message)
     } finally { $script:updateWorker.Dispose();$script:updateWorker=$null;$updateButton.IsEnabled=$true }
 })
@@ -51,10 +58,9 @@ $updateButton.Add_Click({
             $form.Close()
         } catch { [void][Windows.MessageBox]::Show($form,('Could not start setup. The app remains open. ' + $_.Exception.Message),'Update') }
     } elseif ($script:availableUpdate) { Start-AppUpdateWork 'download' }
-    else { Start-AppUpdateWork 'check' }
 })
 $form.Add_ContentRendered({
-    if ([IO.Path]::GetFileName([Diagnostics.Process]::GetCurrentProcess().MainModule.FileName) -like 'MealieJsonCreate-*.exe') { Start-AppUpdateWork 'check' }
+    Start-AppUpdateWork 'check'
 })
 $form.Add_Closed({
     $updateTimer.Stop()

@@ -89,6 +89,22 @@ Add-Type -AssemblyName WindowsBase
       <Setter Property="Background" Value="Transparent"/><Setter Property="BorderThickness" Value="0"/>
       <Setter Property="Foreground" Value="#EFA45D"/><Setter Property="Padding" Value="10,7"/>
     </Style>
+    <Style x:Key="UpdateButtonStyle" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+      <Setter Property="Background" Value="#28543C"/><Setter Property="Foreground" Value="#E2F5E9"/>
+      <Setter Property="BorderBrush" Value="#4A9469"/><Setter Property="FontWeight" Value="SemiBold"/>
+      <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button">
+        <Border x:Name="Surface" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="7" Padding="{TemplateBinding Padding}">
+          <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+        </Border>
+        <ControlTemplate.Triggers>
+          <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Surface" Property="Background" Value="#326B4C"/><Setter TargetName="Surface" Property="BorderBrush" Value="#83D5A2"/></Trigger>
+          <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="Surface" Property="BorderBrush" Value="#B1EDC7"/></Trigger>
+          <Trigger Property="IsPressed" Value="True"><Setter TargetName="Surface" Property="Opacity" Value="0.75"/></Trigger>
+          <Trigger Property="IsEnabled" Value="False"><Setter TargetName="Surface" Property="Opacity" Value="0.5"/></Trigger>
+        </ControlTemplate.Triggers>
+      </ControlTemplate></Setter.Value></Setter>
+    </Style>
     <Style TargetType="TextBox">
       <Setter Property="Background" Value="#1D1D1D"/><Setter Property="Foreground" Value="#F4F1ED"/>
       <Setter Property="CaretBrush" Value="#EFA45D"/><Setter Property="SelectionBrush" Value="#94531E"/>
@@ -164,6 +180,7 @@ Add-Type -AssemblyName WindowsBase
     <Grid.RowDefinitions><RowDefinition Height="88"/><RowDefinition Height="*"/><RowDefinition Height="48"/></Grid.RowDefinitions>
     <Border Background="#222120" BorderBrush="#34312E" BorderThickness="0,0,0,1" Padding="28,0">
       <Grid>
+        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
           <Border Background="#E58325" Width="44" Height="44" CornerRadius="12" Margin="0,0,14,0">
             <Viewbox Width="28" Height="28"><Canvas Width="32" Height="32">
@@ -173,6 +190,8 @@ Add-Type -AssemblyName WindowsBase
           </Border>
           <StackPanel><TextBlock Text="mealie" FontSize="25" FontWeight="SemiBold"/><TextBlock Text="JSON CREATE" Foreground="#AFA69C" FontSize="10" Margin="1,0,0,0"/></StackPanel>
         </StackPanel>
+        <Button Grid.Column="1" x:Name="UpdateButton" Content="Update available" Visibility="Collapsed" Style="{StaticResource UpdateButtonStyle}"
+                VerticalAlignment="Center" Margin="24,0,0,0" AutomationProperties.Name="Application updates"/>
       </Grid>
     </Border>
     <Grid Grid.Row="1" Margin="24,24,24,18">
@@ -274,7 +293,7 @@ Add-Type -AssemblyName WindowsBase
         <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
         <TextBlock x:Name="VersionText" Foreground="#AAA6A0" FontSize="12" VerticalAlignment="Center"/>
         <TextBlock Grid.Column="1" x:Name="StatusText" Text="" Margin="24,0" Foreground="#BBB3A9" FontSize="12" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
-        <Button Grid.Column="2" x:Name="UpdateButton" Content="Check for updates" Style="{StaticResource QuietButton}" FontSize="12"/>
+        <TextBlock Grid.Column="2" Text="schema.org Recipe  /  UTF-8" Foreground="#8D857B" FontSize="11" VerticalAlignment="Center"/>
       </Grid>
     </Border>
   </Grid>

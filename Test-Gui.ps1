@@ -4,6 +4,7 @@ $script:takeSnapshots=$Snapshots
 $script:qaFolder=Join-Path $PSScriptRoot '.qa'
 $source=Get-Content "$PSScriptRoot\MealieJsonCreate.ps1" -Raw
 $smoke=@'
+function Get-AppUpdate { param($CurrentVersion) return }
 function Get-OllamaModels {
     param($Endpoint)
     if ($Endpoint -eq 'http://localhost:11434') { 'test-model:latest';'second-model:7b';'qwen3:8b';'gemma3:4b';'mistral:latest';'deepseek-r1:8b' }
@@ -45,11 +46,33 @@ Add the tomatoes and stir until the pasta is coated. Fold through the basil and 
 "@
 $check=New-Object Windows.Threading.DispatcherTimer
 $check.Interval=[TimeSpan]::FromMilliseconds(250)
-$script:smokeTicks=0;$script:guiStage=0;$script:guiFailure=$null
+$script:smokeTicks=0;$script:guiStage=-3;$script:guiFailure=$null
 $check.Add_Tick({
     try {
         $script:smokeTicks++
         switch ($script:guiStage) {
+            -3 {
+                if (-not $script:updateWorker) {
+                    if ($updateButton.Visibility -ne 'Collapsed') { throw 'Update button visible without an update' }
+                    function Get-AppUpdate { param($CurrentVersion) [pscustomobject]@{Version='999.0.0'} }
+                    Start-AppUpdateWork 'check';$script:guiStage=-2
+                }
+            }
+            -2 {
+                if (-not $script:updateWorker) {
+                    if ($updateButton.Visibility -ne 'Visible' -or $updateButton.Content -ne 'Update available' -or $updateButton.ToolTip -notlike '*999.0.0*') { throw 'Available update not displayed' }
+                    function Get-AppUpdate { param($CurrentVersion) throw 'Mock network failure' }
+                    Start-AppUpdateWork 'check'
+                    if ($updateButton.Visibility -ne 'Collapsed') { throw 'Update button visible during checking' }
+                    $script:guiStage=-1
+                }
+            }
+            -1 {
+                if (-not $script:updateWorker) {
+                    if ($updateButton.Visibility -ne 'Collapsed') { throw 'Update button visible after failed check' }
+                    $script:guiStage=0
+                }
+            }
             0 {
                 if ($model.Items.Count -eq 6) {
                     if ($null -eq $form.Icon -or -not $form.Icon.IsFrozen) { throw 'Window icon failed to load' }

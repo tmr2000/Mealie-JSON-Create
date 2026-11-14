@@ -1,5 +1,5 @@
 ﻿Set-StrictMode -Version 2.0
-$script:AppVersion='0.4.0-rc.1'
+$script:AppVersion='0.4.0'
 $script:ClassificationJson = Get-Content (Join-Path $PSScriptRoot 'Recipe.Classification.json') -Raw -Encoding UTF8
 
 function Format-RecipeLine {

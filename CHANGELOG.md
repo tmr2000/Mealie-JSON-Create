@@ -4,9 +4,28 @@ Notable changes are recorded here, newest first, using [Keep a Changelog](https:
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-11-14
+
+### Changed
+
+- The green header button stays hidden during the background launch check, when up to date or when checking fails. It appears as "Update available" only after finding a newer stable installer, with the version in its tooltip; download/install actions remain available. Version impact: patch-level UI change.
+
 ### Fixed
 
 - Allow manually starting the Release workflow for an existing version tag if its original push did not trigger a run; build the tagged source and retain the existing-release overwrite protection.
+
+### Changes from 0.4.0-rc.1
+
+#### Added
+
+- Interactive reusable release wizard: prepare version/dated changelog/README, run local checks, review notes and changed files, then explicitly confirm staging, committing and pushing the release. Includes prepare-only mode, resuming a prepared version and carrying candidate notes into the stable final.
+- Tag-triggered GitHub Actions release pipeline, changelog-derived release notes and an explicit release push helper; builds and publishes portable/installer EXEs, marking release candidates as prereleases without overwriting existing releases.
+- Program Files installer build with Start menu/optional desktop shortcuts and uninstall support; background stable-release checks and verified, user-initiated installer updates from GitHub.
+- Review-screen detail editor for yield, timings and approved category/tag selections; applying edits updates preview and export JSON.
+
+#### Changed
+
+- Missing yield, timings, categories and tags no longer block conversion; unknown yield remains blank. Pending edits must be applied before export.
 
 ## [0.4.0-rc.1] - 2026-11-14
 
