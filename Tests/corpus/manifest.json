@@ -1,0 +1,237 @@
+﻿[
+  {
+    "id": "web-goodfood-eggs",
+    "origin": "web",
+    "sourceUrl": "https://www.bbcgoodfood.com/recipes/perfect-scrambled-eggs-recipe",
+    "retrieved": "2026-11-15",
+    "adaptation": "Ingredient facts retained; method wording condensed and paraphrased; fixture formatting is a test adaptation.",
+    "file": "web-goodfood-eggs.txt",
+    "ingredients": [
+      "2 large free range eggs",
+      "6 tbsp single cream or full cream milk",
+      "a knob of butter"
+    ],
+    "steps": [
+      "Beat the eggs with the cream or milk and a pinch of salt until combined.",
+      "Warm a non-stick pan for about a minute. Melt the butter without browning it.",
+      "Add the eggs. Wait 20 seconds, then lift and fold them using a wooden spoon.",
+      "Pause for 10 seconds, then fold again.",
+      "Continue until softly set with some runny patches. Take off the heat and briefly allow residual cooking.",
+      "Stir once more and serve immediately."
+    ],
+    "metadata": {
+      "Total time": "10 minutes"
+    },
+    "organisation": {},
+    "expectedError": ""
+  },
+  {
+    "id": "web-budgetbytes-rice",
+    "origin": "web",
+    "sourceUrl": "https://www.budgetbytes.com/simple-sesame-rice/",
+    "retrieved": "2026-11-15",
+    "adaptation": "Ingredient facts retained; method wording condensed and paraphrased; fixture formatting is a test adaptation.",
+    "file": "web-budgetbytes-rice.txt",
+    "ingredients": [
+      "1 clove garlic",
+      "1 Tbsp butter",
+      "1 cup long grain jasmine rice",
+      "1.75 cups water",
+      "1 Tbsp soy sauce",
+      "1/2 Tbsp toasted sesame oil",
+      "1 tsp sesame seeds"
+    ],
+    "steps": [
+      "Chop the garlic. Soften it in butter over medium heat for 1-2 minutes.",
+      "Stir in the rice and toast for another 2-3 minutes.",
+      "Add water and soy sauce. Stir, cover and bring to a boil; reduce the heat and simmer for 15 minutes.",
+      "Switch off the heat and leave covered for 5 minutes. Fluff, mix in sesame oil and seeds, and serve warm."
+    ],
+    "metadata": {
+      "Prep time": "5 minutes",
+      "Cook time": "20 minutes",
+      "Total time": "25 minutes",
+      "Servings": "4 (3/4 cup each)"
+    },
+    "organisation": {},
+    "expectedError": ""
+  },
+  {
+    "id": "web-jamie-carrots",
+    "origin": "web",
+    "sourceUrl": "https://www.jamieoliver.com/recipes/vegetables/the-best-whole-baked-carrots/",
+    "retrieved": "2026-11-15",
+    "adaptation": "Ingredient facts retained; method wording condensed and paraphrased; fixture formatting is a test adaptation.",
+    "file": "web-jamie-carrots.txt",
+    "ingredients": [
+      "750g/1lb 10oz young bunched carrots, washed and scrubbed",
+      "olive oil",
+      "herb or red wine vinegar",
+      "sea salt and freshly ground black pepper",
+      "a few sprigs of fresh thyme",
+      "3 cloves of garlic, crushed"
+    ],
+    "steps": [
+      "Heat the oven to 200°C/400°F/gas 6. Coat carrots in oil, a little vinegar, seasoning, thyme and crushed garlic. Cover a roasting dish tightly with foil and bake for 30 to 40 minutes until tender. Uncover and roast for 10 minutes more to brown."
+    ],
+    "metadata": {
+      "Serves": "4"
+    },
+    "organisation": {},
+    "expectedError": ""
+  },
+  {
+    "id": "generated-shopping-lentils",
+    "origin": "generated",
+    "sourceUrl": "",
+    "retrieved": "",
+    "adaptation": "Original synthetic test recipe; formatting intentionally irregular.",
+    "file": "generated-shopping-lentils.txt",
+    "ingredients": [
+      "Red lentils 200g dry",
+      "Chopped tomatoes 1 x 400g tin",
+      "Vegetable stock 600ml",
+      "Onion 1 whole",
+      "Smoked paprika 2 tsp"
+    ],
+    "steps": [
+      "Cook the onion. Dice the onion and soften it in a splash of the stock for 5 minutes.",
+      "Simmer the lentils. Stir in lentils, tomatoes, remaining stock and paprika. Simmer for 20-25 minutes.",
+      "Portion up. Divide between 3 containers."
+    ],
+    "metadata": {},
+    "organisation": {},
+    "expectedError": ""
+  },
+  {
+    "id": "generated-markdown-fish",
+    "origin": "generated",
+    "sourceUrl": "",
+    "retrieved": "",
+    "adaptation": "Original synthetic test recipe; formatting intentionally irregular.",
+    "file": "generated-markdown-fish.txt",
+    "ingredients": [
+      "Fish: 2 cod fillets (about 300g total)",
+      "Fish: 1 tbsp olive oil",
+      "Fish: 1/2 lemon, sliced",
+      "Beans: 1 x 400g tin cannellini beans, drained",
+      "Beans: 2 tbsp water"
+    ],
+    "steps": [
+      "Preheat the oven to 200C. Put the cod, oil and lemon in a baking dish.",
+      "Bake for 12-15 minutes until the fish is cooked through.",
+      "Warm the beans with 2 tbsp water in a saucepan. Serve beside the fish."
+    ],
+    "metadata": {
+      "recipeYield": "2"
+    },
+    "organisation": {},
+    "expectedError": ""
+  },
+  {
+    "id": "generated-chat-couscous",
+    "origin": "generated",
+    "sourceUrl": "",
+    "retrieved": "",
+    "adaptation": "Original synthetic test recipe; formatting intentionally irregular.",
+    "file": "generated-chat-couscous.txt",
+    "ingredients": [
+      "couscous 120 g",
+      "chickpeas 1 x 400g tin, drained",
+      "boiling water 150 ml",
+      "1 tbsp olive oil",
+      "half a lemon, juiced"
+    ],
+    "steps": [
+      "Put the couscous in a bowl. Pour over 150 ml boiling water and cover for 5 minutes.",
+      "Fluff with a fork. Mix in the chickpeas, olive oil and lemon juice.",
+      "Divide into 2 lunch boxes."
+    ],
+    "metadata": {},
+    "organisation": {
+      "title": [
+        "Desk lunch couscous"
+      ],
+      "description": [
+        "scribbled this down on my phone"
+      ],
+      "ingredients": [
+        [
+          "couscous",
+          "120 g"
+        ],
+        [
+          "chickpeas",
+          "1 x 400g tin, drained"
+        ],
+        [
+          "boiling water",
+          "150 ml"
+        ],
+        [
+          "1 tbsp olive oil"
+        ],
+        [
+          "half a lemon, juiced"
+        ]
+      ],
+      "method": [
+        [
+          "Put the couscous in a bowl.",
+          "Pour over 150 ml boiling water and cover for 5 minutes."
+        ],
+        [
+          "Fluff with a fork.",
+          "Mix in the chickpeas, olive oil and lemon juice."
+        ],
+        [
+          "Divide into 2 lunch boxes."
+        ]
+      ],
+      "notes": [
+        "No freezing instructions supplied."
+      ]
+    },
+    "expectedError": ""
+  },
+  {
+    "id": "generated-wrapped-noodles",
+    "origin": "generated",
+    "sourceUrl": "",
+    "retrieved": "",
+    "adaptation": "Original synthetic test recipe; formatting intentionally irregular.",
+    "file": "generated-wrapped-noodles.txt",
+    "ingredients": [
+      "200g firm tofu, cubed",
+      "150g dried noodles",
+      "1 tbsp soy sauce",
+      "1 tsp grated ginger",
+      "1 tbsp oil"
+    ],
+    "steps": [
+      "Boil the noodles according to the packet. Drain and keep to one side.",
+      "Heat the oil in a frying pan. Fry the tofu for 6-8 minutes, turning it carefully.",
+      "Add soy sauce and ginger. Toss with the noodles and serve."
+    ],
+    "metadata": {
+      "prepTime": "PT10M",
+      "cookTime": "PT15M",
+      "totalTime": "PT25M"
+    },
+    "organisation": {},
+    "expectedError": ""
+  },
+  {
+    "id": "generated-incomplete",
+    "origin": "generated",
+    "sourceUrl": "",
+    "retrieved": "",
+    "adaptation": "Original synthetic test recipe; formatting intentionally irregular.",
+    "file": "generated-incomplete.txt",
+    "ingredients": [],
+    "steps": [],
+    "metadata": {},
+    "organisation": {},
+    "expectedError": "Source QA blocked"
+  }
+]

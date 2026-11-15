@@ -1,4 +1,4 @@
-﻿#Requires -Version 5.1
+#Requires -Version 5.1
 param([switch]$CoreOnly)
 
 # Embedded at build time for a single-file executable; dot-source for development.
@@ -199,7 +199,7 @@ Add-Type -AssemblyName WindowsBase
     <Grid.RowDefinitions><RowDefinition Height="88"/><RowDefinition Height="*"/><RowDefinition Height="48"/></Grid.RowDefinitions>
     <Border Background="#222120" BorderBrush="#34312E" BorderThickness="0,0,0,1" Padding="28,0">
       <Grid>
-        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
           <Border Background="#E58325" Width="44" Height="44" CornerRadius="12" Margin="0,0,14,0">
             <Viewbox Width="28" Height="28"><Canvas Width="32" Height="32">
@@ -209,6 +209,7 @@ Add-Type -AssemblyName WindowsBase
           </Border>
           <StackPanel><TextBlock Text="mealie" FontSize="25" FontWeight="SemiBold"/><TextBlock Text="JSON CREATE" Foreground="#AFA69C" FontSize="10" Margin="1,0,0,0"/></StackPanel>
         </StackPanel>
+        <Button Grid.Column="2" x:Name="LogicButton" Content="&#xE713;" FontFamily="Segoe MDL2 Assets" FontSize="18" VerticalAlignment="Center" Margin="12,0,0,0" ToolTip="Settings" AutomationProperties.Name="Settings"/>
         <Button Grid.Column="1" x:Name="UpdateButton" Content="Update available" Visibility="Collapsed" Style="{StaticResource UpdateButtonStyle}"
                 VerticalAlignment="Center" Margin="24,0,0,0" AutomationProperties.Name="Application updates"/>
       </Grid>
@@ -228,21 +229,6 @@ Add-Type -AssemblyName WindowsBase
             <TextBlock Text="Source URL" Style="{StaticResource Caption}"/>
             <TextBox x:Name="SourceInput" AutomationProperties.Name="Source URL" ToolTip="Optional attribution URL. This app does not fetch the page."/>
             <TextBlock Text="Keep a link to the original recipe." Style="{StaticResource Caption}" FontSize="11" Margin="0,6,0,18"/>
-            <Border Height="1" Background="#3A3530" Margin="0,0,0,18"/>
-            <TextBlock Text="LOCAL AI" Foreground="#EBA76A" FontSize="10" FontWeight="SemiBold" Margin="0,0,0,17"/>
-
-            <TextBlock x:Name="ModeHint" Text="Ollama extracts and formats every recipe. An installed model is required." Foreground="#AAA6A0" FontSize="12" Margin="0,10,0,20"/>
-            <TextBlock Text="Ollama server" Style="{StaticResource Caption}"/>
-            <TextBox x:Name="EndpointInput" Text="http://localhost:11434" AutomationProperties.Name="Ollama server"/>
-            <TextBlock Text="Model" Style="{StaticResource Caption}" Margin="0,17,0,8"/>
-            <Grid>
-              <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="8"/><ColumnDefinition Width="40"/></Grid.ColumnDefinitions>
-              <ComboBox x:Name="ModelSelect" IsEnabled="False" AutomationProperties.Name="Ollama model" ToolTip="Installed models on the selected server"/>
-              <Button Grid.Column="2" x:Name="RefreshButton" Padding="10" Width="40" Height="40" ToolTip="Refresh models" AutomationProperties.Name="Refresh models">
-                <Viewbox Width="17" Height="17"><Path Data="M 19 8 A 8 8 0 1 0 20 15 M 19 2 L 19 8 L 13 8" Stroke="#EFA45D" StrokeThickness="1.8" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"/></Viewbox>
-              </Button>
-            </Grid>
-            <TextBlock x:Name="ModelStatus" Text="Checking local models..." FontSize="11" Foreground="#AAA6A0" Margin="0,5,0,0"/>
           </StackPanel>
         </ScrollViewer>
       </Border>
@@ -318,6 +304,65 @@ Add-Type -AssemblyName WindowsBase
           </Border>
         </Grid>
       </Grid>
+    </Grid>
+    <Grid x:Name="LogicScreen" Grid.Row="1" Background="#191919" Margin="0" Visibility="Collapsed">
+      <DockPanel Margin="32,24">
+        <TextBlock DockPanel.Dock="Top" Text="Settings" FontSize="23" FontWeight="SemiBold" Margin="0,0,0,12"/>
+        <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
+          <Button x:Name="LogicCancel" Content="Cancel" Margin="0,0,8,0"/><Button x:Name="LogicSave" Content="Save settings" Style="{StaticResource PrimaryButton}"/>
+        </StackPanel>
+        <TabControl>
+          <TabItem Header="Tags">
+            <DockPanel Margin="8,12">
+              <Button DockPanel.Dock="Top" HorizontalAlignment="Left" x:Name="AddTag" Style="{StaticResource PrimaryButton}" Padding="16,8" Content="+  Add tag" AutomationProperties.Name="Add tag" Margin="0,0,0,12"/>
+              <Border DockPanel.Dock="Bottom" x:Name="TagDetail" Visibility="Collapsed" Background="#272522" CornerRadius="8" Padding="16" Margin="0,12,0,0">
+                <StackPanel>
+                  <TextBlock Text="Tag name" Margin="0,0,0,4"/>
+                  <TextBox x:Name="TagName"/>
+                  <TextBlock Text="When should Ollama select this tag?" Margin="0,8,0,4"/>
+                  <TextBox x:Name="TagRule" AcceptsReturn="True" TextWrapping="Wrap" Height="84" VerticalScrollBarVisibility="Auto"/>
+                  <Button x:Name="RemoveTag" Content="Remove tag" HorizontalAlignment="Right" Margin="0,8,0,0"/>
+                </StackPanel>
+              </Border>
+              <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"><WrapPanel x:Name="TagRows"/></ScrollViewer>
+            </DockPanel>
+          </TabItem>
+          <TabItem Header="Categories">
+            <DockPanel Margin="8,12">
+              <Button DockPanel.Dock="Top" HorizontalAlignment="Left" x:Name="AddCategory" Style="{StaticResource PrimaryButton}" Padding="16,8" Content="+  Add category" AutomationProperties.Name="Add category" Margin="0,0,0,12"/>
+              <Border DockPanel.Dock="Bottom" x:Name="CategoryDetail" Visibility="Collapsed" Background="#272522" CornerRadius="8" Padding="16" Margin="0,12,0,0">
+                <StackPanel>
+                  <TextBlock Text="Category name" Margin="0,0,0,4"/>
+                  <TextBox x:Name="CategoryName"/>
+                  <TextBlock Text="When should Ollama select this category?" Margin="0,8,0,4"/>
+                  <TextBox x:Name="CategoryRule" AcceptsReturn="True" TextWrapping="Wrap" Height="84" VerticalScrollBarVisibility="Auto"/>
+                  <Button x:Name="RemoveCategory" Content="Remove category" HorizontalAlignment="Right" Margin="0,8,0,0"/>
+                </StackPanel>
+              </Border>
+              <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"><WrapPanel x:Name="CategoryRows"/></ScrollViewer>
+            </DockPanel>
+          </TabItem>
+          <TabItem Header="Local AI" x:Name="AiSettingsTab">
+            <ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel Margin="16" MaxWidth="640" HorizontalAlignment="Left">
+            <Border Height="1" Background="#3A3530" Margin="0,0,0,18"/>
+            <TextBlock Text="LOCAL / NETWORK AI" Foreground="#EBA76A" FontSize="10" FontWeight="SemiBold" Margin="0,0,0,17"/>
+
+            <TextBlock x:Name="ModeHint" Text="Ollama extracts and formats every recipe. A model on the selected local or network server is required." Foreground="#AAA6A0" FontSize="12" Margin="0,10,0,20"/>
+            <TextBlock Text="Ollama server" Style="{StaticResource Caption}"/>
+            <TextBox x:Name="EndpointInput" Text="http://localhost:11434" AutomationProperties.Name="Ollama server"/>
+            <TextBlock Text="Default model" Style="{StaticResource Caption}" Margin="0,17,0,8"/>
+            <Grid>
+              <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="8"/><ColumnDefinition Width="40"/></Grid.ColumnDefinitions>
+              <ComboBox x:Name="ModelSelect" IsEnabled="False" AutomationProperties.Name="Ollama model" ToolTip="Installed models on the selected server"/>
+              <Button Grid.Column="2" x:Name="RefreshButton" Padding="10" Width="40" Height="40" ToolTip="Refresh models" AutomationProperties.Name="Refresh models">
+                <Viewbox Width="17" Height="17"><Path Data="M 19 8 A 8 8 0 1 0 20 15 M 19 2 L 19 8 L 13 8" Stroke="#EFA45D" StrokeThickness="1.8" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"/></Viewbox>
+              </Button>
+            </Grid>
+            <TextBlock x:Name="ModelStatus" Text="Checking server models..." FontSize="11" Foreground="#AAA6A0" Margin="0,5,0,0"/>
+            </StackPanel></ScrollViewer>
+          </TabItem>
+        </TabControl>
+      </DockPanel>
     </Grid>
     <Border Grid.Row="2" BorderBrush="#34312E" BorderThickness="0,1,0,0" Padding="26,0">
       <Grid>
@@ -406,6 +451,7 @@ function Add-MetadataBox([string]$Label,[object[]]$Values) {
     }
     [void]$metadata.Children.Add($panel)
 }
+$script:classificationContext=$null;$script:classificationReview=$null;$script:classificationOverrides=@{};$script:classificationStale=$false;$script:editorSection=''
 $script:editorActive=$false;$script:editorKind=''
 function Show-MetadataEditor($Recipe) {
     $script:editPanel=New-Object Windows.Controls.StackPanel
@@ -436,10 +482,25 @@ function Show-MetadataEditor($Recipe) {
         $labels=if ($field -eq 'recipeCategory') { @($config.categories | ForEach-Object { $_.name }) } else { @($config.tagGroups | ForEach-Object { $_.labels }) }
         foreach ($name in $labels) {
             $choice=New-Object Windows.Controls.CheckBox;$choice.Content=$name;$choice.IsChecked=($Recipe.$field -contains $name);$choice.Margin='0,0,16,10';$choice.Foreground='#E4D9CC'
+            if ($script:classificationReview) {
+                $decisionField=if ($field -eq 'keywords') { 'tags' } else { 'categories' }
+                $decision=@($script:classificationReview.Decisions | Where-Object { $_.Field -eq $decisionField -and $_.Label -eq $name })
+                if ($decision.Count) { $choice.ToolTip=$decision[0].Status + ': ' + $decision[0].Reason + "`n" + $decision[0].Evidence }
+            }
             $choice.Add_Click({$copy.IsEnabled=$false;$save.IsEnabled=$false;Set-AppStatus 'Apply detail changes before exporting.'})
             $script:detailChoices[$field]+=$choice;[void]$choices.Children.Add($choice)
         }
         [void]$panel.Children.Add($choices)
+        if ($script:classificationReview) {
+            $decisionField=if ($field -eq 'keywords') { 'tags' } else { 'categories' }
+            foreach ($decision in @($script:classificationReview.Decisions | Where-Object { $_.Field -eq $decisionField -and ($_.Candidate -or $_.Status -in @('supported','review')) })) {
+                $explanation=New-Object Windows.Controls.TextBlock;$explanation.Tag=$label.Tag;$explanation.TextWrapping='Wrap';$explanation.Margin='0,0,0,10';$explanation.Foreground='#BBB3A9'
+                $explanation.Text=$decision.Label + ' [evidence: ' + $decision.Status + '] - ' + $decision.Reason
+                if ($decision.Evidence) { $explanation.Text += "`n" + $decision.Scope + ': ' + $decision.Evidence }
+                if ($script:classificationStale) { $explanation.Text='Previous result (recheck needed): ' + $explanation.Text }
+                [void]$panel.Children.Add($explanation)
+            }
+        }
     }
     $script:applyDetails=$form.FindName('EditorApply')
 }
@@ -461,6 +522,18 @@ function Apply-RecipeDetails {
         if ($edited.totalTime) {
             foreach ($field in @('prepTime','cookTime')) {
                 if ($edited.$field -and [System.Xml.XmlConvert]::ToTimeSpan($edited.$field) -gt [System.Xml.XmlConvert]::ToTimeSpan($edited.totalTime)) { throw 'Total time must be at least as long as prep or cook time individually.' }
+            }
+        }
+        $previous=$outputBox.Text | ConvertFrom-Json
+        if ($script:classificationContext) {
+            $selectedField=switch ($script:editorSection) { 'categories' {'recipeCategory'} 'tags' {'keywords'} default {''} }
+            if ($selectedField) {
+                $engineField=if ($selectedField -eq 'keywords') { 'tags' } else { 'categories' }
+                foreach ($choice in $script:detailChoices[$selectedField]) { $script:classificationOverrides[$engineField + '|' + [string]$choice.Content]=[bool]$choice.IsChecked }
+                $script:classificationStale=$true
+            }
+            if ($previous.totalTime -ne $edited.totalTime -or $script:editorSection -eq 'timing') {
+                if ($script:classificationContext.PSObject.Properties.Name -contains 'ContradictionDecisions') { $script:classificationContext.ContradictionDecisions=@() };$script:classificationContext.TotalTime=$edited.totalTime;$script:classificationContext.TotalIsExplicit=[bool]$edited.totalTime;$script:classificationStale=$true
             }
         }
         $outputBox.Text=$edited | ConvertTo-Json -Depth 12
@@ -503,12 +576,19 @@ function Show-RecipeEditor([string]$Title,[string]$Kind) {
 function Close-RecipeEditor {
     $form.FindName('EditorStage').Visibility='Collapsed';$form.FindName('OutputTabs').Visibility='Visible'
     $form.FindName('EditorContent').Children.Clear();$form.FindName('EditorError').Text=''
-    $script:editorActive=$false;$script:editorKind=''
+    $script:editorActive=$false;$script:editorKind='';$script:editorSection=''
     $metadata.IsEnabled=$true;$back.IsEnabled=$true;$copy.IsEnabled=$true;$save.IsEnabled=$true
     Show-MetadataEditor ($outputBox.Text | ConvertFrom-Json)
 }
 function Open-DetailEditor([string]$Section) {
+    $script:editorSection=$Section
     Show-MetadataEditor ($outputBox.Text | ConvertFrom-Json)
+    $script:editPanel.Children[0].Text=switch ($Section) {
+        'tags' { 'Recommended tags start checked. Vegetarian/Vegan recommendations contradicted by ingredients are removed. Uncheck any that do not fit. Hover a choice or scroll below for decision reasons. Applying records your selections and removals for future rechecks.' }
+        'categories' { 'Select up to two approved categories. Review suggestions do not export until selected. Applying records your choices for future rechecks; reasons appear below.' }
+        'timing' { 'Enter minutes, or leave unknown times blank. Zero means no time. Applying confirms the displayed total for the Quick rule; use Recheck classification afterwards.' }
+        default { 'Enter the yield, for example 4 servings or 12 muffins. Leave blank when unknown.' }
+    }
     foreach ($child in $script:editPanel.Children) { if ($child.Tag -and $child.Tag -ne $Section) { $child.Visibility='Collapsed' } }
     $hostPanel=$form.FindName('EditorContent');$hostPanel.Children.Clear();[void]$hostPanel.Children.Add($script:editPanel)
     Show-RecipeEditor ('Edit ' + $Section) 'metadata'
@@ -521,6 +601,11 @@ function Apply-RecipeContent([string]$Field,[string[]]$Entries) {
     } elseif ($Field -eq 'method') {
         $edited.recipeInstructions=@($Entries | ForEach-Object { [pscustomobject]@{'@type'='HowToStep';text=$_.Trim()} })
     } else { throw 'Unknown recipe section.' }
+    if ($script:classificationContext) {
+        if ($Field -eq 'ingredients') { $script:classificationContext.Ingredients=@($edited.recipeIngredient) }
+        else { $script:classificationContext.Method=@($edited.recipeInstructions | ForEach-Object { $_.text }) }
+        if ($script:classificationContext.PSObject.Properties.Name -contains 'ContradictionDecisions') { $script:classificationContext.ContradictionDecisions=@() };$script:classificationContext.Claims=@();$script:classificationStale=$true
+    }
     $note='Manual edits: recipe content changed after conversion; source QA counts describe the original conversion. Review categories, tags and timings against your changes.'
     if ($edited.comment -notlike ('*' + $note + '*')) { $edited.comment=($edited.comment + "`n`n" + $note).Trim() }
     $outputBox.Text=$edited | ConvertTo-Json -Depth 12
@@ -569,6 +654,25 @@ $form.FindName('EditorApply').Add_Click({
         } catch { $form.FindName('EditorError').Text=$_.Exception.Message;Set-AppStatus $_.Exception.Message 'error' }
     } else { Apply-RecipeDetails }
 })
+function Invoke-ClassificationRecheck {
+    if (-not $script:classificationContext -or $script:editorActive) { return }
+    try {
+        $context=$script:classificationContext
+        # Rebuild evidence from the current section values, never the superseded source method.
+        $context.Source=$context.Intro + "`nIngredients`n" + (@($context.Ingredients) -join "`n") + "`nMethod`n" + (@($context.Method) -join "`n") + "`nNotes`n" + (@($context.Notes) -join "`n")
+        $review=Get-RecipeClassification -Context $context -ClassificationJson $script:ClassificationJson -Overrides $script:classificationOverrides
+        if ($review.Categories.Count -gt 2) { throw 'Choose at most two categories before rechecking.' }
+        $edited=$outputBox.Text | ConvertFrom-Json
+        $edited.recipeCategory=@($review.Categories);$edited.keywords=@($review.Tags)
+        $pending=@($review.Decisions | Where-Object { $_.Status -eq 'review' }).Count
+        $summary="Classification: evidence rules applied; Recommended tags are preselected. Review the checked tags before import."
+        if ($edited.comment -match '(?m)^Classification:.*$') { $edited.comment=$edited.comment -replace '(?m)^Classification:.*$',$summary } else { $edited.comment += "`n`n" + $summary }
+        $script:classificationReview=$review;$script:classificationStale=$false
+        $outputBox.Text=$edited | ConvertTo-Json -Depth 12
+        Show-RecipePreview $outputBox.Text
+        Set-AppStatus 'Classification rechecked. Manual choices retained; unchecked suggestions do not export.'
+    } catch { Set-AppStatus $_.Exception.Message 'error' }
+}
 function Show-RecipePreview([string]$Json) {
     $recipe=$Json | ConvertFrom-Json -ErrorAction Stop
     Show-MetadataEditor $recipe
@@ -593,6 +697,13 @@ function Show-RecipePreview([string]$Json) {
     Add-MetadataBox 'TIMING' $timings
     Add-MetadataBox 'CATEGORIES' @($recipe.recipeCategory)
     Add-MetadataBox 'TAGS' @($recipe.keywords)
+    if ($script:classificationReview) {
+        $pending=@($script:classificationReview.Decisions | Where-Object { $_.Status -eq 'review' }).Count
+        $reviewText=if ($script:classificationStale) { 'Recipe or selections changed. Recheck to refresh reasons; manual choices are preserved.' } else { "Recommended tags are checked. Open the tag editor to review or remove them." }
+        Add-MetadataBox 'CLASSIFICATION' @($reviewText)
+        $recheck=New-Object Windows.Controls.Button;$recheck.Content='Recheck classification';$recheck.Margin='0,0,0,16'
+        $recheck.Add_Click({Invoke-ClassificationRecheck});[void]$metadata.Children.Add($recheck)
+    }
     if ($recipe.comment) {
         $notes=$recipe.comment
         if ($notes -match '^QA:[^\r\n]+') {
@@ -633,10 +744,42 @@ $clear.Add_Click({ $inputBox.Clear();[void]$inputBox.Focus() })
 
 $modelTimer=New-Object Windows.Threading.DispatcherTimer;$modelTimer.Interval=[TimeSpan]::FromMilliseconds(150)
 $endpointTimer=New-Object Windows.Threading.DispatcherTimer;$endpointTimer.Interval=[TimeSpan]::FromMilliseconds(600)
+$script:aiFile=Join-Path ([Environment]::GetFolderPath('LocalApplicationData')) 'MealieJsonCreate\ai-settings.json'
+$script:preferredModel=''
+$script:preferredEndpoint='http://localhost:11434'
+function Read-AiSettings {
+    if (-not [IO.File]::Exists($script:aiFile)) { return }
+    try {
+        $settings=[IO.File]::ReadAllText($script:aiFile) | ConvertFrom-Json
+        $uri=$null
+        if (-not [uri]::TryCreate([string]$settings.Endpoint,[UriKind]::Absolute,[ref]$uri) -or $uri.Scheme -notin @('http','https')) { throw 'Invalid Ollama server URL.' }
+        $script:preferredModel=[string]$settings.Model
+        $script:preferredEndpoint=[string]$settings.Endpoint
+        if ($endpoint.Text -cne [string]$settings.Endpoint) { $endpoint.Text=[string]$settings.Endpoint }
+    } catch { Set-AppStatus ('Could not load AI settings: '+$_.Exception.Message) 'error' }
+}
+function Save-AiSettings {
+    $uri=$null
+    if (-not [uri]::TryCreate($endpoint.Text.Trim(),[UriKind]::Absolute,[ref]$uri) -or $uri.Scheme -notin @('http','https')) { throw 'Enter an absolute HTTP or HTTPS Ollama server URL.' }
+    if ($script:modelWorker) { throw 'Wait for model discovery to finish before saving settings.' }
+    $selected=[string]$model.SelectedItem
+    if (-not $selected -and $endpoint.Text.Trim() -eq $script:preferredEndpoint) { $selected=$script:preferredModel }
+    $settings=[ordered]@{Endpoint=$endpoint.Text.Trim();Model=$selected}
+    [void][IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName($script:aiFile))
+    $temp=$script:aiFile+'.'+[guid]::NewGuid()+'.tmp'
+    try {
+        [IO.File]::WriteAllText($temp,($settings | ConvertTo-Json),[Text.UTF8Encoding]::new($false))
+        if ([IO.File]::Exists($script:aiFile)) { [IO.File]::Copy($temp,$script:aiFile,$true) } else { [IO.File]::Move($temp,$script:aiFile) }
+    } finally { if ([IO.File]::Exists($temp)) { [IO.File]::Delete($temp) } }
+    $script:preferredModel=$selected
+    $script:preferredEndpoint=$endpoint.Text.Trim()
+}
+Read-AiSettings
 function Start-ModelRefresh {
     $endpointTimer.Stop()
     if ($script:modelWorker) { return }
     $script:modelEndpoint=$endpoint.Text.Trim();$script:previousModel=[string]$model.SelectedItem
+    if (-not $script:previousModel -and $script:modelEndpoint -eq $script:preferredEndpoint) { $script:previousModel=$script:preferredModel }
     $model.Items.Clear();$model.IsEnabled=$false;$refresh.IsEnabled=$false
     $modelStatus.Text='Loading available models...';$modelStatus.Foreground='#AAA6A0';$modelStatus.ToolTip=$null
     $script:modelWorker=[powershell]::Create()
@@ -656,6 +799,7 @@ $modelTimer.Add_Tick({
                 if ($model.Items.Count) {
                     if ($model.Items.Contains($script:previousModel)) { $model.SelectedItem=$script:previousModel } else { $model.SelectedIndex=0 }
                     $model.IsEnabled=$true;$modelStatus.Text=('{0} model(s) available' -f $model.Items.Count);$modelStatus.Foreground='#AFC29D'
+                    if ($script:previousModel -and -not $model.Items.Contains($script:previousModel)) { $modelStatus.Text+='; saved/previous model unavailable, using '+[string]$model.SelectedItem }
                     $modelStatus.ToolTip="Installed models reported by $script:modelEndpoint"
                 } else { $modelStatus.Text='No models installed on this server.';$modelStatus.Foreground='#DDB286' }
             }
@@ -671,20 +815,22 @@ $endpointTimer.Add_Tick({ Start-ModelRefresh })
 $form.Add_ContentRendered({ Start-ModelRefresh;[void]$inputBox.Focus() })
 $timer=New-Object Windows.Threading.DispatcherTimer;$timer.Interval=[TimeSpan]::FromMilliseconds(150)
 function Start-RecipeConversion {
-    if ($script:worker -or $inputStage.Visibility -ne 'Visible') { return }
+    if ($form.FindName('LogicScreen').Visibility -eq 'Visible' -or $script:worker -or $inputStage.Visibility -ne 'Visible') { return }
     if ([string]::IsNullOrWhiteSpace($inputBox.Text)) { Set-AppStatus 'Paste a recipe to get started.' 'error';[void]$inputBox.Focus();return }
-    if ($script:modelWorker -or $model.SelectedIndex -lt 0) { Set-AppStatus 'Select an available Ollama model before converting.' 'error';return }
+    if ($script:modelWorker -or $model.SelectedIndex -lt 0) { Set-AppStatus 'Select an available Ollama model in Settings > Local AI before converting.' 'error';return }
+    $script:classificationContext=$null;$script:classificationReview=$null;$script:classificationOverrides=@{};$script:classificationStale=$false
     $copy.IsEnabled=$false;$save.IsEnabled=$false;$outputBox.Clear();$preview.Children.Clear();$form.FindName('IngredientsContent').Children.Clear();$outputPlaceholder.Visibility='Visible';$convert.IsEnabled=$false
     $metadata.Children.Clear();$inputStage.Visibility='Collapsed';$outputStage.Visibility='Visible'
     $form.FindName('OutputTabs').SelectedIndex=0
     $generationProgress.Visibility='Visible';$generationProgress.IsIndeterminate=$true
     $form.FindName('ProgressTitle').Text='Writing your recipe…'
     $form.FindName('ProgressDetail').Text='Ollama is extracting ingredients, organising the method and checking recipe details.'
-    Set-AppStatus 'Writing your cookbook-style recipe...' 'busy'
+    Set-AppStatus 'Preparing your recipe...' 'busy'
+    $script:ClassificationJson=$script:nextClassification
     $script:worker=[powershell]::Create()
-    $code=${function:Format-RecipeLine}.ToString();$converter=${function:ConvertTo-RecipeJson}.ToString()
-    [void]$script:worker.AddScript("function Format-RecipeLine { $code }; function ConvertTo-RecipeJson { $converter }")
-    [void]$script:worker.AddStatement().AddCommand('ConvertTo-RecipeJson').AddParameter('ClassificationJson',$script:ClassificationJson).AddParameter('Text',$inputBox.Text).AddParameter('Title',$title.Text).AddParameter('SourceUrl',$source.Text).AddParameter('UseOllama',$true).AddParameter('Endpoint',$endpoint.Text).AddParameter('Model',[string]$model.SelectedItem)
+    $code=${function:Format-RecipeLine}.ToString();$converter=${function:ConvertTo-RecipeJson}.ToString();$classifier=${function:Get-RecipeClassification}.ToString()
+    [void]$script:worker.AddScript("function Format-RecipeLine { $code }; function Get-RecipeClassification { $classifier }; function ConvertTo-RecipeJson { $converter }")
+    [void]$script:worker.AddStatement().AddCommand('ConvertTo-RecipeJson').AddParameter('ClassificationJson',$script:ClassificationJson).AddParameter('Text',$inputBox.Text).AddParameter('Title',$title.Text).AddParameter('SourceUrl',$source.Text).AddParameter('UseOllama',$true).AddParameter('IncludeClassificationReview',$true).AddParameter('Endpoint',$endpoint.Text).AddParameter('Model',[string]$model.SelectedItem)
     $script:pending=$script:worker.BeginInvoke();$timer.Start()
 }
 $convert.Add_Click({ Start-RecipeConversion })
@@ -697,7 +843,11 @@ $timer.Add_Tick({
         try {
             $result=$script:worker.EndInvoke($script:pending)
             if ($script:worker.HadErrors) { throw ($script:worker.Streams.Error | Out-String) }
-            $outputBox.Text=($result -join [Environment]::NewLine);Show-RecipePreview $outputBox.Text
+            if ($result.Count -eq 1 -and $result[0].PSObject.Properties.Name -contains 'Json') {
+                $script:classificationContext=$result[0].Context;$script:classificationReview=$result[0].Review
+                $outputBox.Text=$result[0].Json
+            } else { $outputBox.Text=($result -join [Environment]::NewLine) }
+            Show-RecipePreview $outputBox.Text
             $copy.IsEnabled=$true;$save.IsEnabled=$true;Set-AppStatus 'Recipe ready. Review quantities and instructions, then copy or save your JSON.'
         } catch {
             $form.FindName('ProgressTitle').Text='Could not convert this recipe'
@@ -720,6 +870,150 @@ $form.Add_Closed({
     $timer.Stop();$modelTimer.Stop();$endpointTimer.Stop()
     if ($script:worker) { $script:worker.Stop();$script:worker.Dispose() }
     if ($script:modelWorker) { $script:modelWorker.Stop();$script:modelWorker.Dispose() }
+})
+$script:factoryClassification=$script:ClassificationJson
+$script:logicFile=Join-Path ([Environment]::GetFolderPath('LocalApplicationData')) 'MealieJsonCreate\classification-settings.json'
+function Get-LogicRows {
+    $config=$script:factoryClassification | ConvertFrom-Json
+    foreach ($entry in $config.categories) { [pscustomobject]@{Kind='Category';Original=$entry.name;Name=$entry.name;Logic=$entry.description} }
+    foreach ($group in $config.tagGroups) {
+        foreach ($name in $group.labels) {
+            $definition=@($config.tagDefinitions | Where-Object { $_.name -eq $name })
+            $instruction=if ($definition.Count) { $definition[0].description } else { $group.rules }
+            [pscustomobject]@{Kind='Tag';Original=$name;Name=$name;Logic=$instruction}
+        }
+    }
+}
+function ConvertTo-LogicConfig($Rows) {
+    $config=$script:factoryClassification | ConvertFrom-Json
+    $defaults=@(Get-LogicRows)
+    $custom=@()
+    foreach ($kind in @('Category','Tag')) {
+        $entries=@($Rows | Where-Object { $_.Kind -eq $kind })
+        if (-not $entries.Count) { throw "Keep at least one $kind." }
+        $names=@{}
+        foreach ($entry in $entries) {
+            if (-not $entry.Name.Trim() -or -not $entry.Logic.Trim()) { throw "Enter a name and selection rule for every $kind." }
+            if ($names.ContainsKey($entry.Name)) { throw "Duplicate $kind name: $($entry.Name)" }
+            $names[$entry.Name]=$true
+        }
+    }
+    $config.categories=@($Rows | Where-Object Kind -eq Category | ForEach-Object { [pscustomobject]@{name=$_.Name;description=$_.Logic} })
+    foreach ($group in $config.tagGroups) {
+        $group.labels=@(foreach ($row in $Rows) {
+            $default=@($defaults | Where-Object { $_.Kind -eq 'Tag' -and $_.Name -ceq $row.Original })
+            if ($row.Kind -eq 'Tag' -and $group.labels -contains $row.Original -and $row.Original -ceq $row.Name -and $default.Count -eq 1 -and $row.Logic -ceq $default[0].Logic) { $row.Name }
+        })
+    }
+    foreach ($entry in $Rows) {
+        $default=@($defaults | Where-Object { $_.Kind -eq $entry.Kind -and $_.Name -ceq $entry.Original })
+        if ($default.Count -and $entry.Name -ceq $entry.Original -and $entry.Logic -ceq $default[0].Logic) { continue }
+        $field=if ($entry.Kind -eq 'Category') { 'categories' } else { 'tags' }
+        $custom+=($field+'|'+$entry.Name)
+        if ($field -eq 'tags') { $config.tagGroups+=@([pscustomobject]@{group='Custom';labels=@($entry.Name);rules=$entry.Logic}) }
+    }
+    $config | Add-Member -NotePropertyName customSelections -NotePropertyValue $custom
+    return ($config | ConvertTo-Json -Depth 16)
+}
+function Update-DefaultLogicRows($Rows) {
+    $factory=$script:factoryClassification | ConvertFrom-Json
+    $defaults=@(Get-LogicRows)
+    foreach ($row in $Rows) {
+        $copy=$row.PSObject.Copy()
+        if ($row.Kind -eq 'Tag' -and $row.Name -ceq $row.Original) {
+            $group=@($factory.tagGroups | Where-Object { $_.labels -contains $row.Original })
+            $definition=@($defaults | Where-Object { $_.Kind -eq 'Tag' -and $_.Name -ceq $row.Original })
+            if ($group.Count -eq 1 -and $definition.Count -eq 1 -and $row.Logic -ceq $group[0].rules) { $copy.Logic=$definition[0].Logic }
+        }
+        $copy
+    }
+}
+$script:logicRows=@(Get-LogicRows)
+$script:nextClassification=$script:factoryClassification
+if (Test-Path -LiteralPath $script:logicFile) {
+    try {
+        $loaded=Get-Content $script:logicFile -Raw -Encoding UTF8 | ConvertFrom-Json
+        $loaded=@(Update-DefaultLogicRows $loaded)
+        $script:nextClassification=ConvertTo-LogicConfig $loaded
+        $script:logicRows=$loaded
+    } catch { Set-AppStatus ('Could not load classification settings: '+$_.Exception.Message) 'error' }
+}
+function Select-LogicEntry($Button) {
+    $entry=$Button.Tag
+    $detail=$form.FindName($entry.Kind+'Detail')
+    if ($detail.Tag) { $detail.Tag.ClearValue([Windows.Controls.Control]::BorderBrushProperty) }
+    $detail.Tag=$null
+    $form.FindName($entry.Kind+'Name').Text=$entry.Name
+    $form.FindName($entry.Kind+'Rule').Text=$entry.Logic
+    $detail.Tag=$Button
+    $Button.BorderBrush='#E58325'
+    $detail.Visibility='Visible'
+}
+function Add-LogicRow($Entry) {
+    $chip=New-Object Windows.Controls.Button
+    $chip.Tag=$Entry.PSObject.Copy()
+    $chip.Content=if ($Entry.Name) { $Entry.Name } else { 'New '+$Entry.Kind.ToLower() }
+    $chip.Margin='0,0,8,8'
+    $chip.Add_Click({Select-LogicEntry $this})
+    [void]$form.FindName($Entry.Kind+'Rows').Children.Add($chip)
+    if (-not $Entry.Name) { Select-LogicEntry $chip;$chip.BringIntoView();[void]$form.FindName($Entry.Kind+'Name').Focus() }
+}
+foreach ($kind in @('Tag','Category')) {
+    $form.FindName($kind+'Name').Tag=$kind
+    $form.FindName($kind+'Name').Add_TextChanged({
+        $chip=$form.FindName($this.Tag+'Detail').Tag
+        if ($chip) { $chip.Tag.Name=$this.Text.Trim();$chip.Content=if ($chip.Tag.Name) { $chip.Tag.Name } else { 'Unnamed '+$this.Tag.ToLower() } }
+    })
+    $form.FindName($kind+'Rule').Tag=$kind
+    $form.FindName($kind+'Rule').Add_TextChanged({
+        $chip=$form.FindName($this.Tag+'Detail').Tag
+        if ($chip) { $chip.Tag.Logic=$this.Text.Trim() }
+    })
+    $form.FindName('Remove'+$kind).Tag=$kind
+    $form.FindName('Remove'+$kind).Add_Click({
+        $detail=$form.FindName($this.Tag+'Detail')
+        $form.FindName($this.Tag+'Rows').Children.Remove($detail.Tag)
+        $detail.Tag=$null;$detail.Visibility='Collapsed'
+    })
+}
+function Close-LogicScreen {
+    $form.FindName('LogicScreen').Visibility='Collapsed'
+    $inputStage.Parent.Visibility='Visible'
+    $form.FindName('LogicButton').IsEnabled=$true
+}
+$form.FindName('LogicButton').Add_Click({
+    $script:aiSnapshot=[pscustomobject]@{Endpoint=$endpoint.Text;Model=[string]$model.SelectedItem}
+    $form.FindName('TagRows').Children.Clear();$form.FindName('CategoryRows').Children.Clear()
+    foreach ($kind in @('Tag','Category')) { $detail=$form.FindName($kind+'Detail');$detail.Tag=$null;$detail.Visibility='Collapsed' }
+    foreach ($entry in $script:logicRows) { Add-LogicRow $entry }
+    $inputStage.Parent.Visibility='Collapsed';$form.FindName('LogicScreen').Visibility='Visible';$this.IsEnabled=$false
+})
+$form.FindName('AddTag').Add_Click({Add-LogicRow ([pscustomobject]@{Kind='Tag';Original='';Name='';Logic=''})})
+$form.FindName('AddCategory').Add_Click({Add-LogicRow ([pscustomobject]@{Kind='Category';Original='';Name='';Logic=''})})
+$form.FindName('LogicCancel').Add_Click({
+    $script:preferredModel=$script:aiSnapshot.Model
+    if ($endpoint.Text -cne $script:aiSnapshot.Endpoint) { $endpoint.Text=$script:aiSnapshot.Endpoint }
+    if ($model.Items.Contains($script:preferredModel)) { $model.SelectedItem=$script:preferredModel }
+    Close-LogicScreen
+})
+$form.FindName('LogicSave').Add_Click({
+    try {
+        $rows=@(foreach ($panel in @('TagRows','CategoryRows')) {
+            foreach ($row in $form.FindName($panel).Children) {
+                $row.Tag
+            }
+        })
+        $json=ConvertTo-LogicConfig $rows
+        Save-AiSettings
+        [void][IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName($script:logicFile))
+        $temp=$script:logicFile+'.'+[guid]::NewGuid()+'.tmp'
+        try {
+            [IO.File]::WriteAllText($temp,(ConvertTo-Json -InputObject $rows -Depth 5),[Text.UTF8Encoding]::new($false))
+            if ([IO.File]::Exists($script:logicFile)) { [IO.File]::Copy($temp,$script:logicFile,$true) } else { [IO.File]::Move($temp,$script:logicFile) }
+        } finally { if ([IO.File]::Exists($temp)) { [IO.File]::Delete($temp) } }
+        $script:logicRows=$rows;$script:nextClassification=$json
+        Close-LogicScreen;Set-AppStatus 'Settings saved. The default model will be used on future launches.'
+    } catch { Set-AppStatus $_.Exception.Message 'error' }
 })
 . "$PSScriptRoot\Recipe.UpdateUi.ps1"
 [void]$form.ShowDialog()

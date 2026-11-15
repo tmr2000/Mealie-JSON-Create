@@ -44,7 +44,7 @@ try {
     $metadata=& "$PSScriptRoot\Get-ReleaseMetadata.ps1" -Tag "v$Version"
     Write-Host "`nRelease notes" -ForegroundColor Cyan
     Get-Content -LiteralPath $metadata.NotesPath | ForEach-Object { Write-Host $_ }
-    foreach ($test in @('Test-Core.ps1','Test-Update.ps1','Test-Release.ps1','Test-ReleaseWizard.ps1','Test-RecipeQa.ps1','Test-SourceQa.ps1','Test-Gui.ps1')) {
+    foreach ($test in @('Test-Core.ps1','Test-Update.ps1','Test-Release.ps1','Test-ReleaseWizard.ps1','Test-RecipeQa.ps1','Test-SourceQa.ps1','Test-Classification.ps1','Test-Organisation.ps1','Test-RecipeCorpus.ps1','Test-Gui.ps1')) {
         Write-Host "`nRunning $test..." -ForegroundColor Cyan
         & powershell.exe -NoProfile -STA -File (Join-Path $PSScriptRoot $test)
         if ($LASTEXITCODE -ne 0) { throw "$test failed. Prepared files remain for correction; nothing was committed or pushed." }

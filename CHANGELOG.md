@@ -4,6 +4,55 @@ Notable changes are recorded here, newest first, using [Keep a Changelog](https:
 
 ## [Unreleased]
 
+## [0.6.0-rc.1] - 2026-11-15
+
+- Move Local AI controls into Settings and persist the local/network Ollama server and default model between launches (minor capability impact). Local Ollama installation is not required.
+
+
+- Add a focused Ollama tag-contradiction review with evidence-backed removals, compatible-tag controls, per-tag reasons and fallback notes (minor capability).
+- Preserve manual choices on local recheck and clear stale model resolutions after recipe/timing edits.
+
+
+- Fix automatic Vegetarian/Vegan recommendations surviving explicit ingredient contradictions, including chicken curry and customised dietary prompts; preserve deliberate manual overrides (patch impact).
+
+
+- Fix repeated tag instructions in classification settings by defining individual defaults for every approved tag and sending those same definitions to Ollama.
+- Upgrade unchanged legacy group instructions while preserving customised rules, names and removals (patch impact).
+
+
+### Regression corpus
+
+- Added three attributed website recipe-card adaptations, four deliberately untidy generated recipes and an incomplete-input rejection case, with independent expected source facts.
+- Added deterministic and optional live Ollama corpus checks, per-case reports and export snapshots; integrated offline coverage into local and hosted release checks.
+- Fixed numbered-list cleanup stripping the integer part from decimal quantities such as 1.75 cups (patch impact).
+
+
+- Organise unfamiliar recipe layouts using source-line IDs, combining split ingredient quantities and method paragraphs without model-written recipe text. Reject missing, duplicate or invented IDs. Minor capability change.
+
+- Fixed loading saved category and tag lists in Windows PowerShell 5.1.
+
+- Highlight Add tag and Add category with orange plus buttons in classification settings (visual polish).
+
+- Simplified classification settings to show compact names and a single editor for the selected entry.
+
+- Added a top-bar classification settings editor for per-user tag and category names and Ollama selection rules (minor feature).
+
+- Preselect approved tag recommendations, including uncertain or conflicting suggestions, for manual correction before import.
+
+- Split Ollama conversion into conditional extraction, missing-field estimation and classification requests. Preserve source wording and resolve evidence IDs locally.
+
+### Added
+
+- Evidence-based classification decisions with scoped reasons, source excerpts and suggestions for manual review, displayed in the category/tag editors.
+- Local classification rechecks after recipe/timing edits, stale-evidence indicators and retention of manual checkbox choices.
+- Dedicated classification regressions in local and hosted release checks.
+
+### Changed
+
+- Evaluate every approved label to recover missed tags; distinguish central ingredients from stock/sauce/garnish evidence and restrict dish identity to source titles.
+- Require explicit cuisine evidence, affirmative planning guidance and actual appliance use; keep estimated Quick and optional appliance methods for review.
+- Recognise configured plant alternatives while withholding dietary tags for conflicting or ambiguous ingredients.
+
 ## [0.5.0] - 2026-11-15
 
 ### Added

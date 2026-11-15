@@ -1,4 +1,4 @@
-﻿param([switch]$Snapshots)
+param([switch]$Snapshots)
 $ErrorActionPreference='Stop'
 $script:takeSnapshots=$Snapshots
 $script:qaFolder=Join-Path $PSScriptRoot '.qa'
@@ -12,11 +12,18 @@ function Get-OllamaModels {
     else { throw 'Test connection failure' }
 }
 function ConvertTo-RecipeJson {
-    param($Text,$Title,$SourceUrl,$UseOllama,$Endpoint,$Model,$ClassificationJson)
+    param($Text,$Title,$SourceUrl,$UseOllama,$Endpoint,$Model,$ClassificationJson,$IncludeClassificationReview)
     if (-not $UseOllama) { throw 'GUI must always use Ollama' }
     if ($Text -eq 'Not a complete recipe') { throw 'Missing ingredients and method' }
     Start-Sleep -Milliseconds 300
-    '{"name":"Tomato & basil pasta","description":"A simple supper with a rich tomato sauce.","recipeYield":"2 servings","prepTime":"PT10M","cookTime":"PT20M","totalTime":"PT30M","comment":"QA: 3 ingredients preserved; 2 steps preserved.\n\nTimes estimated.","recipeCategory":["Main courses"],"keywords":["Pasta","Italian"],"recipeIngredient":["200 g pasta","1 tin chopped tomatoes","1 handful fresh basil"],"recipeInstructions":[{"text":"Cook the pasta according to the packet instructions. Drain well, then return it to the pan."},{"text":"Add the tomatoes and stir until the pasta is coated. Fold through the basil and serve."}]}'
+    $json='{"name":"Tomato & basil pasta","description":"A simple supper with a rich tomato sauce.","recipeYield":"2 servings","prepTime":"PT10M","cookTime":"PT20M","totalTime":"PT30M","comment":"QA: 3 ingredients preserved; 2 steps preserved.\n\nTimes estimated.","recipeCategory":["Main courses"],"keywords":["Pasta","Italian"],"recipeIngredient":["200 g pasta","1 tin chopped tomatoes","1 handful fresh basil"],"recipeInstructions":[{"text":"Cook the pasta according to the packet instructions. Drain well, then return it to the pan."},{"text":"Add the tomatoes and stir until the pasta is coated. Fold through the basil and serve."}]}'
+    if ($IncludeClassificationReview) {
+        $recipe=$json | ConvertFrom-Json
+        $context=[pscustomobject]@{Intro='Italian pasta main course';Source=$Text;Ingredients=@($recipe.recipeIngredient);Method=@($recipe.recipeInstructions | ForEach-Object { $_.text });Notes=@();Structured=$true;TotalTime=$recipe.totalTime;TotalIsExplicit=$false;ModelCategories=@('Main courses');ModelTags=@('Pasta','Italian');Claims=@()}
+        return [pscustomobject]@{Json=$json;Context=$context;Review=(Get-RecipeClassification -Context $context -ClassificationJson $ClassificationJson)}
+    }
+    return $json
+
 }
 function Click-Button($Button) {
     $Button.RaiseEvent([Windows.RoutedEventArgs]::new([Windows.Controls.Button]::ClickEvent))
@@ -79,20 +86,83 @@ $check.Add_Tick({
                     if ($model.IsEditable -or $model.SelectedItem -ne 'test-model:latest') { throw 'Model dropdown failed' }
                     if ($form.FindName('VersionText').Text -ne "v$script:AppVersion" -or $status.Text) { throw 'Version footer failed' }
                     if ($xaml.OuterXml -match 'Your next recipe starts here|RECIPE WORKSPACE|From inspiration|Paste a recipe, polish') { throw 'Removed text still present' }
-                    $refreshPoint=$refresh.TranslatePoint([Windows.Point]::new(0,0),$form)
-                    $modelPoint=$model.TranslatePoint([Windows.Point]::new(0,0),$form)
-                    if ([Math]::Abs($refreshPoint.Y-$modelPoint.Y) -gt 2 -or $refreshPoint.X -le $modelPoint.X) { throw 'Refresh icon is not beside model dropdown' }
+                    if ($model.IsVisible) { throw 'AI controls remain on the recipe screen' }
                     if ($inputBox.Text.Length -or $copy.IsEnabled -or $null -ne $form.FindName('InputPlaceholder')) { throw 'Initial state failed' }
                     if ($paste.BorderThickness.Left -ne 1 -or $clear.BorderThickness.Left -ne 1 -or $paste.Background.ToString() -eq '#00FFFFFF') { throw 'Paste and clear button styling failed' }
+                    $savedRows=$script:logicRows;$savedConfig=$script:nextClassification;$savedFile=$script:logicFile
+                    $script:logicRows=@(Get-LogicRows)
+                    $script:logicFile=Join-Path $env:TEMP ('mealie-settings-'+[guid]::NewGuid()+'.json')
+                    try {
+                        $factory=$script:factoryClassification | ConvertFrom-Json
+                        $legacy=@(Get-LogicRows)
+                        $legacySoup=@($legacy | Where-Object { $_.Kind -eq 'Tag' -and $_.Name -eq 'Soup' })[0]
+                        $legacySoup.Logic=@($factory.tagGroups | Where-Object { $_.labels -contains 'Soup' })[0].rules
+                        $customCurry=@($legacy | Where-Object { $_.Name -eq 'Curry' })[0]
+                        $customCurry.Logic='My own curry instruction.'
+                        $migrated=@(Update-DefaultLogicRows $legacy)
+                        if (@($migrated | Where-Object Name -eq Soup)[0].Logic -eq $legacySoup.Logic -or @($migrated | Where-Object Name -eq Curry)[0].Logic -ne 'My own curry instruction.') { throw 'Legacy instruction migration lost defaults or custom edits' }
+                        $defaultConfig=(ConvertTo-LogicConfig $script:logicRows) | ConvertFrom-Json
+                        if ($defaultConfig.customSelections.Count -or @($defaultConfig.tagGroups | ForEach-Object { $_.labels }).Count -ne @($factory.tagGroups | ForEach-Object { $_.labels }).Count) { throw 'Default definitions treated as custom or lost labels' }
+                        Click-Button $form.FindName('LogicButton')
+                        $form.FindName('AiSettingsTab').IsSelected=$true;$form.UpdateLayout()
+                        if (-not $model.IsVisible) { throw 'AI controls missing from settings' }
+                        $model.SelectedIndex=1
+                        Save-AiSettings
+                        $storedAi=Get-Content $script:aiFile -Raw | ConvertFrom-Json
+                        if ($storedAi.Model -ne 'second-model:7b' -or $storedAi.Endpoint -ne 'http://localhost:11434') { throw 'AI settings persistence failed' }
+                        $script:preferredModel='';Read-AiSettings
+                        if ($script:preferredModel -ne 'second-model:7b') { throw 'AI default did not load' }
+                        Click-Button $form.FindName('LogicCancel')
+                        if ($model.SelectedItem -ne 'test-model:latest') { throw 'Cancel did not restore model selection' }
+                        Click-Button $form.FindName('LogicButton')
+                        $model.SelectedIndex=0
+                        $form.FindName('AiSettingsTab').IsSelected=$false
+                        $form.FindName('AiSettingsTab').Parent.SelectedIndex=0
+                        $soup=@($form.FindName('TagRows').Children | Where-Object { $_.Content -eq 'Soup' })[0]
+                        $curry=@($form.FindName('TagRows').Children | Where-Object { $_.Content -eq 'Curry' })[0]
+                        Click-Button $soup;$soupText=$form.FindName('TagRule').Text
+                        Click-Button $curry
+                        if ($soupText -eq $form.FindName('TagRule').Text -or $soupText -notmatch 'Select Soup' -or $form.FindName('TagRule').Text -notmatch 'Select Curry') { throw 'Per-tag instructions or GUI selection incorrect' }
+                        $form.UpdateLayout()
+                        $chips=$form.FindName('TagRows').Children
+                        if (-not $chips.Count -or -not $chips[0].IsVisible -or $chips[0].ActualWidth -lt 10 -or $chips[0].ActualHeight -lt 10) { throw 'Tag list not visible' }
+                        Save-UiSnapshot 'settings-tags.png'
+                        Click-Button $form.FindName('AddTag')
+                        $new=$form.FindName('TagRows').Children | Select-Object -Last 1
+                        $form.FindName('TagName').Text='Test tag';$form.FindName('TagRule').Text='Select for a test recipe.'
+                        $first=$form.FindName('CategoryRows').Children[0]
+                        Click-Button $first
+                        $form.FindName('CategoryName').Text='Morning meals'
+                        Click-Button $form.FindName('LogicSave')
+                        if (-not [IO.File]::Exists($script:logicFile)) { throw ('Settings save failed: '+$status.Text) }
+                        $stored=Get-Content $script:logicFile -Raw | ConvertFrom-Json
+                        $settings=(ConvertTo-LogicConfig $stored) | ConvertFrom-Json
+                        if ($settings.categories.name -notcontains 'Morning meals' -or $settings.customSelections -notcontains 'tags|Test tag') { throw 'Settings round trip failed' }
+                        Click-Button $form.FindName('LogicButton')
+                        $last=$form.FindName('TagRows').Children | Select-Object -Last 1
+                        if ($form.FindName('TagDetail').Visibility -ne 'Collapsed') { throw 'Settings should open with only names visible' }
+                        Click-Button $last
+                        if ($form.FindName('TagRule').Text -ne 'Select for a test recipe.') { throw 'Selected rule missing' }
+                        Click-Button $form.FindName('RemoveTag')
+                        Click-Button $form.FindName('LogicSave')
+                        if (($script:nextClassification | ConvertFrom-Json).customSelections -contains 'tags|Test tag') { throw "Tag removal failed: $($status.Text); rows=$($form.FindName('TagRows').Children.Count)" }
+                    } finally {
+                        Remove-Item -LiteralPath $script:logicFile,($script:logicFile+'.bak') -ErrorAction SilentlyContinue
+                        $script:logicFile=$savedFile;$script:logicRows=$savedRows;$script:nextClassification=$savedConfig
+                    }
                     Save-UiSnapshot 'empty.png'
                     Click-Button $convert
                     if ($status.Text -ne 'Paste a recipe to get started.') { throw 'Empty input validation failed' }
-                    $model.SelectedIndex=1;Click-Button $refresh;$script:guiStage=1
+                    $model.SelectedIndex=1;Save-AiSettings
+                    $model.SelectedIndex=-1;Read-AiSettings
+                    Click-Button $refresh;$script:guiStage=1
                 }
             }
             1 {
                 if (-not $script:modelWorker) {
                     if ($model.SelectedItem -ne 'second-model:7b') { throw 'Selection not preserved' }
+                    Click-Button $form.FindName('LogicButton')
+                    $form.FindName('AiSettingsTab').IsSelected=$true;$form.UpdateLayout()
                     $model.IsDropDownOpen=$true;$script:guiStage=2
                 }
             }
@@ -103,6 +173,7 @@ $check.Add_Tick({
                 $model.SelectedIndex=5
                 if ($model.SelectedItem -ne 'deepseek-r1:8b') { throw 'Last model cannot be selected' }
                 $model.IsDropDownOpen=$false
+                Click-Button $form.FindName('LogicCancel')
                 if ($null -ne $form.FindName('OllamaToggle') -or $inputStage.Visibility -ne 'Visible' -or $outputStage.Visibility -ne 'Collapsed') { throw 'Mandatory Ollama/input stage failed' }
                 $endpoint.Text='http://empty:11434';$script:guiStage=3
             }
@@ -142,6 +213,13 @@ $check.Add_Tick({
                 if (-not $script:modelWorker -and $model.Items.Count -eq 6) {
                     if ($status.Text -notlike 'Recipe ready*') { throw 'Model discovery overwrote conversion status' }
                     Save-UiSnapshot 'recipe.png'
+                    $script:classificationContext | Add-Member -NotePropertyName ContradictionDecisions -NotePropertyValue @([pscustomobject]@{tag='No cook';action='remove';reason='Old method';evidence='Old text'}) -Force
+                    Open-DetailEditor 'timing'
+                    Click-Button $form.FindName('EditorApply')
+                    if ($script:classificationContext.ContradictionDecisions.Count) { throw 'Timing confirmation retained stale model decisions' }
+                    if (-not $script:classificationContext.TotalIsExplicit -or -not $script:classificationStale) { throw 'Applying unchanged timings did not confirm estimated total' }
+                    Invoke-ClassificationRecheck
+                    if (($outputBox.Text | ConvertFrom-Json).keywords -notcontains 'Quick (30 minutes or less)') { throw 'Confirmed qualifying total did not update Quick' }
                     $script:detailInputs.recipeYield.Text='6 servings'
                     $script:detailInputs.prepTime.Text=''
                     $script:detailInputs.cookTime.Text='25'
@@ -180,6 +258,7 @@ $check.Add_Tick({
                     $script:contentRows.Children[1].Tag.Text='2 tomatoes'
                     Click-Button $script:contentRows.Children[2].Children[0]
                     Click-Button $form.FindName('EditorApply')
+                    $script:classificationContext.ContradictionDecisions=@([pscustomobject]@{tag='No cook';action='remove';reason='Old method';evidence='Old text'})
                     Open-ContentEditor 'method'
                     if ($script:contentRows.Children.Count -ne 2) { throw 'Individual method steps missing' }
                     $script:contentRows.Children[0].Tag.Text="Boil the pasta.`nKeep a little cooking water."
@@ -194,6 +273,7 @@ $check.Add_Tick({
                     }
                     Click-Button $form.FindName('EditorApply')
                     $edited=$outputBox.Text | ConvertFrom-Json
+                    if ($script:classificationContext.ContradictionDecisions.Count) { throw 'Content edits retained stale model decisions' }
                     if ($edited.recipeIngredient.Count -ne 2 -or $edited.recipeInstructions.Count -ne 3 -or $edited.recipeInstructions[0].text -notmatch 'cooking water' -or $edited.comment -notmatch 'Manual edits:') { throw 'Content edits failed' }
                     $before=$outputBox.Text
                     Open-ContentEditor 'method'
@@ -206,6 +286,15 @@ $check.Add_Tick({
                     Click-Button $form.FindName('EditorApply')
                     if ($outputBox.Text -ne $before -or $copy.IsEnabled) { throw 'Empty ingredients changed export' }
                     Click-Button $form.FindName('EditorCancel')
+                    if (-not $script:classificationStale -or -not $script:classificationReview) { throw 'Content edit did not invalidate classification evidence' }
+                    Open-DetailEditor 'tags'
+                    foreach ($choice in $script:detailChoices.keywords) { $choice.IsChecked=([string]$choice.Content -eq 'Soup') }
+                    Click-Button $form.FindName('EditorApply')
+                    Invoke-ClassificationRecheck
+                    $rechecked=$outputBox.Text | ConvertFrom-Json
+                    if ($script:classificationStale -or $rechecked.keywords -notcontains 'Soup' -or $rechecked.keywords -contains 'Pasta') { throw 'Recheck lost manual additions/removals' }
+                    if ($rechecked.PSObject.Properties.Name -contains 'Context' -or $rechecked.PSObject.Properties.Name -contains 'Review') { throw 'Internal review data leaked into JSON' }
+                    Open-DetailEditor 'tags';Save-UiSnapshot 'classification-evidence.png';Click-Button $form.FindName('EditorCancel')
                     $form.FindName('OutputTabs').SelectedIndex=1;Save-UiSnapshot 'recipe-steps.png'
                     $form.FindName('OutputTabs').SelectedIndex=2;$script:guiStage=7
                 }
@@ -218,7 +307,7 @@ $check.Add_Tick({
                     if ($p.X -lt 0 -or $p.Y -lt 0 -or ($p.X+$control.ActualWidth) -gt $form.ActualWidth -or ($p.Y+$control.ActualHeight) -gt $form.ActualHeight) { throw "Control $($control.Name) clipped at minimum size" }
                 }
                 Click-Button $back
-                if ($inputStage.Visibility -ne 'Visible' -or $inputBox.Text -ne $sample -or $title.Text -ne 'Tomato & basil pasta' -or $source.Text -ne 'https://example.com/pasta' -or $model.SelectedItem -ne 'test-model:latest') { throw 'Back lost input' }
+                    if ($inputStage.Visibility -ne 'Visible' -or $inputBox.Text -ne $sample -or $title.Text -ne 'Tomato & basil pasta' -or $source.Text -ne 'https://example.com/pasta' -or $model.SelectedItem -ne 'second-model:7b') { throw 'Back lost input or saved default model' }
                 $form.UpdateLayout()
                 foreach ($control in @($convert,$inputBox,$paste,$clear)) {
                     $p=$control.TranslatePoint([Windows.Point]::new(0,0),$form)
@@ -262,4 +351,7 @@ foreach ($file in @('Recipe.Update.ps1','Recipe.UpdateUi.ps1')) {
 }
 $iconPath=Join-Path $PSScriptRoot 'Assets\MealieJsonCreate.ico'
 $source=$source.Replace("(Join-Path `$PSScriptRoot 'Assets\MealieJsonCreate.ico')", ("'" + $iconPath.Replace("'", "''") + "'"))
-& ([scriptblock]::Create($source))
+$testAiFile=Join-Path $env:TEMP ('mealie-ai-'+[guid]::NewGuid()+'.json')
+$source=[regex]::Replace($source, '(?m)^\$script:aiFile=.*$', ('$script:aiFile=' + "'" + $testAiFile.Replace("'","''") + "'"))
+try { & ([scriptblock]::Create($source)) }
+finally { if ([IO.File]::Exists($testAiFile)) { [IO.File]::Delete($testAiFile) } }

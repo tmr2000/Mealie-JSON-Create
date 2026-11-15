@@ -2,11 +2,9 @@
 
 Ideas and follow-on work, not release commitments. Completed features belong in CHANGELOG.md and README.md.
 
-## Classification settings editor
+## Classification settings follow-up
 
-The shared configuration approach is now implemented: `Recipe.Classification.json` contains approved labels and rules used for the Ollama prompt, structured-output schema and validation.
-
-Next, add an in-app editor for categories, tags and their definitions. Validate edits before saving, support restoring defaults, and decide where user settings live for packaged EXEs. Preserve the single source of truth so displayed choices, prompts and validation cannot drift. Consider import/export of list presets. List changes should not silently rename existing entries in Mealie.
+Consider preset import/export and an in-app restore-defaults action.
 
 ## Required tools
 
@@ -14,7 +12,7 @@ Generate required equipment from the recipe using Ollama, independently of the c
 
 ## Classification review
 
-Improve dietary ingredient recognition to distinguish plant alternatives such as coconut milk, peanut butter and vegan chicken without overlooking mixed ingredients or optional animal products. Current conservative checks may withhold dietary tags for those names.
+Configured matching now recognises common plant alternatives such as coconut milk, peanut butter and vegan chicken. Expand recognition without overlooking mixed ingredients or optional animal products; ambiguous products still require review.
 
 The review screen now supports manual yield, timing and approved category/tag edits before export. Review additions to the vocabulary as the recipe collection grows.
 
@@ -38,15 +36,18 @@ Explore creating recipes through Mealie's API instead of manually copying JSON. 
 
 Source locking now supports grouped ingredient lists, numbered/bulleted method steps and indented continuation lines, with source timing/yield precedence and fail-closed handling of ambiguous explicit sections. Plain ingredient lines and blank-line-separated method paragraphs are now supported too. Further extend handling of unknown website headings and more complex subrecipes. Preserve source-to-output evidence for unstructured recipes, and detect altered quantities, omitted steps and unsupported claims without trusting another model's verdict. Expand the regression corpus with more complex multiline methods, alternatives, subrecipes and legitimate category/planning wording that the current conservative keyword gates withhold. Consider a source comparison view and explicit review of estimated metadata. Current safeguards are documented in README.md; these broader checks remain unimplemented.
 
-## Evidence-based classification proposal (not implemented)
+## Evidence-based classification refinements
 
-Keep Recipe.Classification.json as the single source for approved categories, tags and rule definitions. Current Ollama selection and removal-only checks remain unchanged while these rules are discussed. Proposed flow:
+The first pass is implemented under Unreleased: scoped supported/review/excluded decisions, recovery of missing labels, source-only checks, report display, manual overrides and explicit local rechecks. Current behaviour and limitations belong in README.md and RECIPE-CLASSIFICATION.md.
 
-1. Use parsed ingredients, method, title, source notes and final timings as separately identified evidence. Preserve exact source snippets and scope; generated prose must not establish source facts. Manual content edits would invalidate derived evidence and require an explicit recheck, retaining deliberate manual selections.
-2. Evaluate deterministic planning rules directly (Quick from total time, Make ahead and Freezer friendly from affirmative source guidance). Have Ollama propose semantic facts such as serving role, dish identity and central ingredients, with exact evidence references; do not treat model claims or confidence scores as proof.
-3. For each candidate approved label, check positive support, ingredient roles, negation, contradictions and ambiguity. Mark supported, needs review or excluded, with a reason. No arbitrary label counts or forced entries; keep the existing maximum of two categories. Suggested labels needing review would not export until accepted. Missing metadata must continue to allow conversion and export.
-4. Show supported selections and review suggestions in the editor; let users add/remove approved labels and preserve those overrides on explicit rechecks. Hard output rules (approved vocabulary, max two categories, valid field shapes) still apply.
+Further decisions remain: richer serving-role and central-ingredient inference from quantities and semantic context; accepting recognised culinary identity for cuisine beyond explicit wording; treating Vegetables on mixed dishes; better vessel analysis and optional cooking alternatives; broader plant-alternative/product/compound-ingredient recognition; and whether estimated totals should ever select Quick automatically. The current conservative choice holds estimated Quick for review. Expand positive and adversarial recipe fixtures before widening these rules.
 
-Example to agree: traditional shepherd's pie with minced lamb and beef stock should qualify for Main courses, Lamb and Pie & tart; beef stock is a supporting ingredient and must not add Beef. Its description explicitly saying British supports British. A total of 110 minutes excludes Quick. Lamb excludes Vegetarian and Vegan. Without advance-preparation or freezing guidance, neither planning tag applies. Current removal-only keyword checks may miss Pie & tart when the text says only shepherd's pie; dish identity needs phrase recognition rather than literal standalone words alone.
+Consider an explicit reset of manual overrides, persistence across app sessions, rebuilding semantic suggestions with another model call after edits, and a more compact comparison of original evidence versus edited content. Current rechecks are local, preserve whole-field checkbox decisions and do not requery Ollama. Unstructured-source dietary evidence remains unverified after edits. No new approved labels, required-tools rules or dietary guarantees are implied by these ideas.
 
-Open decisions: whether recognisable dish identity can establish cuisine without explicit source wording; what counts as a central ingredient (stock/garnishes excluded, threshold still to agree); whether Vegetables belongs on mixed meat dishes; how to identify one-pot recipes and optional alternative methods; how to classify ambiguous compound ingredients and suitable plant alternatives; whether estimated totals can select Quick automatically or require review. No new labels, dietary guarantees, required-tools rules or classifier behaviour are introduced by this proposal.
+## Organisation follow-up
+
+Source-ID organisation is implemented. Improve grouping and ignored-content review across wider copied shopping layouts. Coverage checks cannot establish that a line was correctly classified as ignored.
+
+## Live corpus organisation failure
+
+The 2026-11-15 live qwen2.5:7b corpus run failed generated-chat-couscous because the model reused source ID L1 after its correction attempt. Keep this positive fixture and its exact expected ingredients and steps while improving organisation reliability. Offline coverage tests assembly with a hand-written grouping oracle and does not resolve this model failure. Current results are documented in Tests/corpus/README.md.

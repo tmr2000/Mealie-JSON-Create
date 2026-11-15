@@ -1,4 +1,4 @@
-{
+﻿{
   "categoryRules": "Categories describe how a recipe is served. Choose one primary category, with a second only when clearly useful. Do not classify every main course as Lunch and Dinner; those occasions are deliberately omitted. Empty lists are allowed when nothing fits. Maximum two categories. Every selected category needs positive source support; never add a second category to fill the array. A chicken curry is not Desserts or Cakes & baking. Source validation patterns are conservative evidence gates, not a complete classifier.",
   "categories": [
     {
@@ -103,7 +103,7 @@
         "American",
         "Caribbean"
       ],
-      "rules": "Use only when the source identifies the cuisine or the recipe has a clear, specific culinary identity. An ingredient alone (such as soy sauce) is insufficient. Omit cuisine when uncertain; this starter list can grow with the collection."
+      "rules": "Use only when the source identifies the cuisine or the recipe has a clear, specific culinary identity. An ingredient alone (such as soy sauce) is insufficient. Omit cuisine when uncertain; this starter list can grow with the collection. The first evidence-rule pass auto-selects cuisine only from explicit introduction wording; culinary-identity inferences remain review suggestions."
     },
     {
       "group": "Dish type",
@@ -266,7 +266,7 @@
       "label": "Barbecue",
       "scope": "method",
       "sourcePattern": "(?i)\\b(?:barbecue|bbq|barbecuing)\\b",
-      "excludePattern": "(?i)\\b(?:not|never|avoid|without)\\b[^.!?\\r\\n]*\\bbarbecue|bbq"
+      "excludePattern": "(?i)\\b(?:not|never|avoid|without)\\b[^.!?\\r\\n]*\\b(?:barbecue|bbq)\\b"
     },
     {
       "field": "tags",
@@ -322,6 +322,295 @@
       "field": "tags",
       "label": "Traybake",
       "sourcePattern": "(?i)\\b(traybake|tray bake)\\b"
+    }
+  ],
+  "evidenceRules": {
+    "policy": "Evaluate all approved labels against scoped source evidence. Supporting ingredients do not establish a main ingredient tag. Preselect every approved model tag and local tag suggestion. Keep evidence conflicts visible for manual correction. Estimated qualifying totals suggest Quick. Cuisine requires explicit wording in recipe introduction. Manual overrides are preserved on recheck.",
+    "supportingIngredientPattern": "(?i)\\b(stock|broth|bouillon|gravy|sauce|seasoning|flavou?r(?:ing)?|garnish|to serve|for serving)\\b",
+    "plantAlternativePattern": "(?i)\\b(?:vegan|vegetarian|plant[- ]based|meat[- ]free)\\s+(?:chicken|beef|pork|lamb|fish|bacon|ham|cheese|milk|cream|butter)\\b|\\b(?:coconut|almond|oat|soy|soya|rice)\\s+(?:milk|cream)\\b|\\b(?:peanut|almond|cashew|cocoa)\\s+butter\\b|\\b(?:vegan|vegetarian|vegetable)\\s+(?:stock|broth)\\b",
+    "dietaryAmbiguityPattern": "(?i)\\b(cheese|parmesan|pecorino|worcestershire|pesto|stock|broth|gelatine?|rennet)\\b",
+    "mainCoursePattern": "(?i)\\b(main course|main dish|shepherd.s pie|cottage pie|steak pie|curry|stew|lasagn[ae]|risotto|paella)\\b",
+    "heatPattern": "(?i)\\b(boil|simmer|fry|bake|roast|grill|heat|microwave|toast|cook)\\b",
+    "multipleVesselPattern": "(?i)\\b(another|second|separate)\\s+(pan|pot|saucepan|frying pan)\\b|\\b(?:boil|cook)\\b[^.!?\\r\\n]*\\bseparately\\b",
+    "methodClaims": [
+      {
+        "label": "One pot",
+        "pattern": "(?i)\\bone[- ]pot\\b"
+      },
+      {
+        "label": "No cook",
+        "pattern": "(?i)\\bno[- ]cook\\b"
+      }
+    ],
+    "centralIngredients": [
+      {
+        "label": "Chicken",
+        "pattern": "(?i)\\bchicken\\b"
+      },
+      {
+        "label": "Turkey",
+        "pattern": "(?i)\\bturkey\\b"
+      },
+      {
+        "label": "Beef",
+        "pattern": "(?i)\\b(beef|steak|veal)\\b"
+      },
+      {
+        "label": "Pork",
+        "pattern": "(?i)\\b(pork|bacon|ham|pancetta|chorizo|salami|prosciutto)\\b"
+      },
+      {
+        "label": "Lamb",
+        "pattern": "(?i)\\b(lamb|mutton)\\b"
+      },
+      {
+        "label": "Fish",
+        "pattern": "(?i)\\b(fish|salmon|tuna|cod|haddock|trout|mackerel|sardines?)\\b"
+      },
+      {
+        "label": "Seafood",
+        "pattern": "(?i)\\b(prawns?|shrimp|crab|lobster|mussels?|clams?|oysters?|squid)\\b"
+      },
+      {
+        "label": "Eggs",
+        "pattern": "(?i)\\beggs?\\b"
+      },
+      {
+        "label": "Beans & lentils",
+        "pattern": "(?i)\\b(beans?|lentils?|chickpeas?)\\b"
+      },
+      {
+        "label": "Tofu & tempeh",
+        "pattern": "(?i)\\b(tofu|tempeh)\\b"
+      }
+    ],
+    "vegetableIdentityPattern": "(?i)\\b(vegetable|vegetables|vegetarian|vegan)\\b",
+    "planningNegationPattern": "(?i)\\b(not|never|avoid|cannot|can.t|unsuitable)\\b",
+    "applianceConditionalPattern": "(?i)\\b(if|alternatively|optional|instead|could|can also)\\b",
+    "planningLabels": [
+      "Make ahead",
+      "Freezer friendly"
+    ],
+    "dietaryLabels": [
+      "Vegetarian",
+      "Vegan"
+    ],
+    "identityNegationPattern": "(?i)\\b(not|never|without|isn.t|is not|don.t|do not)\\b",
+    "categoryIdentityPatterns": [
+      {
+        "label": "Sauces & condiments",
+        "pattern": "(?i)\\b(sauce|condiment|dressing|dip|hummus|pesto|mayonnaise|chutney)\\b(?:\\s+recipe)?\\s*$"
+      },
+      {
+        "label": "Basics & components",
+        "pattern": "(?i)\\b(stock|filling|component|base|dough)\\b(?:\\s+recipe)?\\s*$"
+      }
+    ]
+  },
+  "tagDefinitions": [
+    {
+      "name": "British",
+      "description": "Select British when the source names the cuisine or the dish has a clear British culinary identity. A single ingredient or condiment is insufficient."
+    },
+    {
+      "name": "Irish",
+      "description": "Select Irish when the source names the cuisine or the dish has a clear Irish culinary identity. A single ingredient or condiment is insufficient."
+    },
+    {
+      "name": "Italian",
+      "description": "Select Italian when the source names the cuisine or the dish has a clear Italian culinary identity. A single ingredient or condiment is insufficient."
+    },
+    {
+      "name": "French",
+      "description": "Select French when the source names the cuisine or the dish has a clear French culinary identity. A single ingredient or condiment is insufficient."
+    },
+    {
+      "name": "Spanish",
+      "description": "Select Spanish when the source names the cuisine or the dish has a clear Spanish culinary identity. A single ingredient or condiment is insufficient."
+    },
+    {
+      "name": "Greek",
+      "description": "Select Greek when the source names the cuisine or the dish has a clear Greek culinary identity. A single ingredient or condiment is insufficient."
+    },
+    {
+      "name": "Turkish",
+      "description": "Select Turkish when the source names the cuisine or the dish has a clear Turkish culinary identity. A single ingredient or condiment is insufficient."
+    },
+    {
+      "name": "Middle Eastern",
+      "description": "Select Middle Eastern when the source names the cuisine or the dish has a clear Middle Eastern culinary identity. A single ingredient or condiment is insufficient."
+    },
+    {
+      "name": "North African",
+      "description": "Select North African when the source names the cuisine or the dish has a clear North African culinary identity. A single ingredient or condiment is insufficient."
+    },
+    {
+      "name": "Indian",
+      "description": "Select Indian when the source names the cuisine or the dish has a clear Indian culinary identity. A single ingredient or condiment is insufficient."
+    },
+    {
+      "name": "Thai",
+      "description": "Select Thai when the source names the cuisine or the dish has a clear Thai culinary identity. A single ingredient or condiment is insufficient."
+    },
+    {
+      "name": "Chinese",
+      "description": "Select Chinese when the source names the cuisine or the dish has a clear Chinese culinary identity. A single ingredient or condiment is insufficient."
+    },
+    {
+      "name": "Japanese",
+      "description": "Select Japanese when the source names the cuisine or the dish has a clear Japanese culinary identity. A single ingredient or condiment is insufficient."
+    },
+    {
+      "name": "Korean",
+      "description": "Select Korean when the source names the cuisine or the dish has a clear Korean culinary identity. A single ingredient or condiment is insufficient."
+    },
+    {
+      "name": "Vietnamese",
+      "description": "Select Vietnamese when the source names the cuisine or the dish has a clear Vietnamese culinary identity. A single ingredient or condiment is insufficient."
+    },
+    {
+      "name": "Mexican",
+      "description": "Select Mexican when the source names the cuisine or the dish has a clear Mexican culinary identity. A single ingredient or condiment is insufficient."
+    },
+    {
+      "name": "American",
+      "description": "Select American when the source names the cuisine or the dish has a clear American culinary identity. A single ingredient or condiment is insufficient."
+    },
+    {
+      "name": "Caribbean",
+      "description": "Select Caribbean when the source names the cuisine or the dish has a clear Caribbean culinary identity. A single ingredient or condiment is insufficient."
+    },
+    {
+      "name": "Soup",
+      "description": "Select Soup when the finished dish is a soup served with a liquid or blended base. Stock used inside another dish does not qualify."
+    },
+    {
+      "name": "Stew",
+      "description": "Select Stew for a simmered dish of substantial pieces in gravy or sauce, served as a stew."
+    },
+    {
+      "name": "Curry",
+      "description": "Select Curry when the recipe makes a curry. Curry powder used as seasoning in another dish is insufficient."
+    },
+    {
+      "name": "Salad",
+      "description": "Select Salad when the finished dish is a salad, including substantial cooked or grain salads. A side salad mentioned for serving is insufficient."
+    },
+    {
+      "name": "Pasta",
+      "description": "Select Pasta when pasta is a central part of the finished dish, including pasta bakes and lasagne."
+    },
+    {
+      "name": "Noodles",
+      "description": "Select Noodles when noodles are central to the dish. A suggested noodle accompaniment alone is insufficient."
+    },
+    {
+      "name": "Rice dish",
+      "description": "Select Rice dish when rice is central to the recipe, such as risotto, paella or a rice bowl. Rice mentioned only as a serving suggestion is insufficient."
+    },
+    {
+      "name": "Pizza",
+      "description": "Select Pizza for pizza or a pizza-style assembled dish. Pizza sauce by itself does not qualify."
+    },
+    {
+      "name": "Pie & tart",
+      "description": "Select Pie & tart for pies or tarts, including pastry pies and potato-topped shepherd's or cottage pies. Pastry alone is insufficient."
+    },
+    {
+      "name": "Sandwich & wrap",
+      "description": "Select Sandwich & wrap for filled sandwiches, wraps, burritos or similar handheld assembled dishes. A deconstructed bowl alone does not qualify."
+    },
+    {
+      "name": "Traybake",
+      "description": "Select Traybake when the dish cooks together on a baking tray. Simply putting one component on a tray is insufficient."
+    },
+    {
+      "name": "Chicken",
+      "description": "Select Chicken when chicken meat is central. Chicken stock, flavouring or garnish alone is insufficient. Plant-based chicken alternatives do not qualify."
+    },
+    {
+      "name": "Turkey",
+      "description": "Select Turkey when turkey meat is central. Turkey stock, flavouring or garnish alone is insufficient."
+    },
+    {
+      "name": "Beef",
+      "description": "Select Beef when beef or veal meat is central. Beef stock, gravy or flavouring alone is insufficient."
+    },
+    {
+      "name": "Pork",
+      "description": "Select Pork when pork, bacon, ham or another pork product is central. A small garnish or seasoning alone is insufficient."
+    },
+    {
+      "name": "Lamb",
+      "description": "Select Lamb when lamb or mutton meat is central. Lamb stock or flavouring alone is insufficient."
+    },
+    {
+      "name": "Fish",
+      "description": "Select Fish when finfish such as salmon, tuna or cod is central. Fish stock, fish sauce or a minor anchovy seasoning alone is insufficient."
+    },
+    {
+      "name": "Seafood",
+      "description": "Select Seafood when shellfish or other non-finfish seafood is central, such as prawns, crab, mussels or squid. Finfish uses Fish."
+    },
+    {
+      "name": "Eggs",
+      "description": "Select Eggs when eggs are central, such as an omelette, frittata or egg salad. Glazing pastry or binding a mixture with an egg alone is insufficient."
+    },
+    {
+      "name": "Beans & lentils",
+      "description": "Select Beans & lentils when legumes such as beans, lentils or chickpeas are central. Coffee beans and vanilla beans do not qualify."
+    },
+    {
+      "name": "Tofu & tempeh",
+      "description": "Select Tofu & tempeh when tofu or tempeh is central to the finished dish."
+    },
+    {
+      "name": "Vegetables",
+      "description": "Select Vegetables when vegetables are central to the finished dish. A little onion, garnish or seasoning in a meat dish is insufficient."
+    },
+    {
+      "name": "Vegetarian",
+      "description": "Select Vegetarian only when every ingredient, including optional additions, stocks and sauces, is vegetarian. Exclude meat, fish, seafood, gelatine, animal fats and animal-rennet cheese. Withhold when compound ingredients are ambiguous."
+    },
+    {
+      "name": "Vegan",
+      "description": "Select Vegan only when every ingredient, including optional additions, stocks and sauces, is plant-based. Exclude meat, fish, eggs, dairy, honey and other animal products. Withhold ambiguous compounds. Vegan recipes also qualify as Vegetarian."
+    },
+    {
+      "name": "One pot",
+      "description": "Select One pot when the whole recipe uses one cooking vessel. Mixing bowls do not disqualify it, but separately cooking rice or pasta in another pan does."
+    },
+    {
+      "name": "Air fryer",
+      "description": "Select Air fryer when the method actually cooks food in an air fryer. Equipment lists or statements saying not to use one are insufficient."
+    },
+    {
+      "name": "Slow cooker",
+      "description": "Select Slow cooker when the method actually uses a slow cooker. Long cooking in an oven or an unused equipment mention is insufficient."
+    },
+    {
+      "name": "Pressure cooker",
+      "description": "Select Pressure cooker when the method pressure-cooks food in a pressure cooker or pressure setting. An unused appliance mention is insufficient."
+    },
+    {
+      "name": "Barbecue",
+      "description": "Select Barbecue when the method cooks on a barbecue or BBQ. Barbecue sauce or an unused equipment mention is insufficient."
+    },
+    {
+      "name": "No cook",
+      "description": "Select No cook only when no heating is required anywhere in the recipe. Boiling water, melting ingredients or cooking a component disqualifies it."
+    },
+    {
+      "name": "Quick (30 minutes or less)",
+      "description": "Select Quick (30 minutes or less) when total elapsed preparation-to-serving time is at most 30 minutes, including resting, chilling and other waits. Use total time rather than hands-on time."
+    },
+    {
+      "name": "Make ahead",
+      "description": "Select Make ahead when the source explicitly describes preparing the dish or a component in advance. Meal-prep guidance qualifies; a slow cooking method by itself does not."
+    },
+    {
+      "name": "Freezer friendly",
+      "description": "Select Freezer friendly when the source explicitly calls the recipe freezable or gives affirmative freezing guidance. Do not infer this from ingredients or from negated instructions."
     }
   ]
 }
