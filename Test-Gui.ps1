@@ -127,7 +127,7 @@ $check.Add_Tick({
                     if ($generationProgress.IsIndeterminate -or $generationProgress.Visibility -ne 'Collapsed') { throw 'Progress bar still running after success' }
                     $r=$outputBox.Text | ConvertFrom-Json
                     if ($r.name -ne 'Tomato & basil pasta' -or $r.recipeIngredient.Count -ne 3) { throw 'GUI conversion failed' }
-                    if ($preview.Children.Count -lt 10 -or $outputPlaceholder.Visibility -ne 'Collapsed' -or -not $save.IsEnabled) { throw 'Recipe preview failed' }
+                    if ($preview.Children.Count -lt 3 -or $outputPlaceholder.Visibility -ne 'Collapsed' -or -not $save.IsEnabled) { throw 'Recipe preview failed' }
                     $r | Add-Member -NotePropertyName recipeCategory -NotePropertyValue @('Main courses') -Force
                     $r | Add-Member -NotePropertyName keywords -NotePropertyValue @('Pasta','Italian') -Force
                     Show-RecipePreview ($r | ConvertTo-Json -Depth 12)
@@ -155,6 +155,58 @@ $check.Add_Tick({
                     $script:detailInputs.totalTime.Text='invalid';Click-Button $script:applyDetails
                     if ($copy.IsEnabled -or $outputBox.Text -notmatch '6 servings') { throw 'Invalid edit was applied' }
                     $script:detailInputs.totalTime.Text='35';Click-Button $script:applyDetails
+                    if ($form.FindName('OutputTabs').Items.Count -ne 3) { throw 'Ingredients/Recipe/JSON tabs missing' }
+                    if (@($metadata.Children | Where-Object { $_ -is [Windows.Controls.DockPanel] }).Count -ne 4) { throw 'Section edit buttons missing' }
+                    $beforeEditor=$outputBox.Text
+                    Open-DetailEditor 'yield'
+                    if ($script:detailInputs.prepTime.Visibility -ne 'Collapsed' -or $script:detailInputs.recipeYield.Visibility -ne 'Visible') { throw 'Editor did not isolate yield' }
+                    if ($form.OwnedWindows.Count -or $form.FindName('EditorStage').Visibility -ne 'Visible' -or $copy.IsEnabled -or $back.IsEnabled) { throw 'Editor is not inline or exports enabled' }
+                    $script:detailInputs.recipeYield.Text='Discard this'
+                    Click-Button $form.FindName('EditorCancel')
+                    if ($outputBox.Text -ne $beforeEditor -or -not $copy.IsEnabled) { throw 'Cancel changed metadata or export state' }
+                    Open-DetailEditor 'timing'
+                    $script:detailInputs.cookTime.Text='26'
+                    Click-Button $script:applyDetails
+                    if (($outputBox.Text | ConvertFrom-Json).cookTime -ne 'PT26M') { throw 'Inline timing editor failed' }
+                    Open-DetailEditor 'tags'
+                    Save-UiSnapshot 'tags-editor.png'
+                    $choice=$script:detailChoices.keywords[0]
+                    $choice.ApplyTemplate()
+                    if (-not $choice.Template.FindName('TickBox',$choice)) { throw 'Themed checkbox template missing' }
+                    Click-Button $form.FindName('EditorCancel')
+                    Open-ContentEditor 'ingredients'
+                    if ($script:contentRows.Children.Count -ne 3 -or $form.OwnedWindows.Count) { throw 'Ingredient rows missing or window spawned' }
+                    $script:contentRows.Children[0].Tag.Text='250 g pasta'
+                    $script:contentRows.Children[1].Tag.Text='2 tomatoes'
+                    Click-Button $script:contentRows.Children[2].Children[0]
+                    Click-Button $form.FindName('EditorApply')
+                    Open-ContentEditor 'method'
+                    if ($script:contentRows.Children.Count -ne 2) { throw 'Individual method steps missing' }
+                    $script:contentRows.Children[0].Tag.Text="Boil the pasta.`nKeep a little cooking water."
+                    $script:contentRows.Children[1].Tag.Text='Add tomatoes and serve.'
+                    Add-ContentEditorRow 'Finish with basil.'
+                    Save-UiSnapshot 'method-editor.png'
+                    $form.Width=$form.MinWidth;$form.Height=$form.MinHeight
+                    Save-UiSnapshot 'editor-compact.png'
+                    foreach ($control in @($form.FindName('EditorApply'),$form.FindName('EditorCancel'),$form.FindName('EditorScroll'))) {
+                        $p=$control.TranslatePoint([Windows.Point]::new(0,0),$form)
+                        if ($p.X -lt 0 -or $p.Y -lt 0 -or $p.X+$control.ActualWidth -gt $form.ActualWidth -or $p.Y+$control.ActualHeight -gt $form.ActualHeight) { throw 'Inline editor clipped at minimum size' }
+                    }
+                    Click-Button $form.FindName('EditorApply')
+                    $edited=$outputBox.Text | ConvertFrom-Json
+                    if ($edited.recipeIngredient.Count -ne 2 -or $edited.recipeInstructions.Count -ne 3 -or $edited.recipeInstructions[0].text -notmatch 'cooking water' -or $edited.comment -notmatch 'Manual edits:') { throw 'Content edits failed' }
+                    $before=$outputBox.Text
+                    Open-ContentEditor 'method'
+                    $script:contentRows.Children[0].Tag.Text=''
+                    Click-Button $form.FindName('EditorApply')
+                    if ($outputBox.Text -ne $before -or $copy.IsEnabled -or -not $form.FindName('EditorError').Text) { throw 'Empty step applied or error missing' }
+                    Click-Button $form.FindName('EditorCancel')
+                    Open-ContentEditor 'ingredients'
+                    $script:contentRows.Children.Clear()
+                    Click-Button $form.FindName('EditorApply')
+                    if ($outputBox.Text -ne $before -or $copy.IsEnabled) { throw 'Empty ingredients changed export' }
+                    Click-Button $form.FindName('EditorCancel')
+                    $form.FindName('OutputTabs').SelectedIndex=1;Save-UiSnapshot 'recipe-steps.png'
                     $form.FindName('OutputTabs').SelectedIndex=2;$script:guiStage=7
                 }
             }
@@ -190,7 +242,7 @@ $check.Add_Tick({
                 if ($status.Text -like 'Conversion failed*') {
                     if ($generationProgress.IsIndeterminate -or $generationProgress.Visibility -ne 'Collapsed') { throw 'Progress bar still running after failure' }
                     if ($copy.IsEnabled -or $save.IsEnabled -or $preview.Children.Count) { throw 'Stale output left enabled after failure' }
-                    Write-Host 'WPF checks passed: models, refresh, dropdown, mandatory AI, stage navigation, errors, conversion, preview, tabs, compact layout and clear.'
+                    Write-Host 'WPF checks passed: model discovery, updates, conversion, Ingredients/Recipe/JSON tabs, inline editors, per-entry fields, themed checkboxes, apply/cancel, validation, compact layout and navigation.'
                     $check.Stop();$form.Close()
                 }
             }

@@ -4,6 +4,18 @@ Notable changes are recorded here, newest first, using [Keep a Changelog](https:
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-11-15
+
+### Added
+
+- Edit ingredients and numbered recipe steps as individual themed fields in the main window, with add/remove and apply/cancel controls; flag source QA counts as historical after content edits.
+
+### Changed
+
+- Split Recipe preview into Ingredients and Recipe tabs, retaining JSON.
+- Use accessible pencil buttons for metadata and content editing; replace the Edit details tab and separate editor windows with inline editors and themed category/tag checkboxes.
+- Disable export and other review actions while editing; keep drafts out of JSON until successfully applied.
+
 ## [0.4.0] - 2026-11-14
 
 ### Changed

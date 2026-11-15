@@ -105,6 +105,25 @@ Add-Type -AssemblyName WindowsBase
         </ControlTemplate.Triggers>
       </ControlTemplate></Setter.Value></Setter>
     </Style>
+    <Style TargetType="CheckBox">
+      <Setter Property="Foreground" Value="#E4D9CC"/><Setter Property="Padding" Value="10,8"/>
+      <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="CheckBox">
+        <Border x:Name="Choice" Background="#302C28" BorderBrush="#4B4036" BorderThickness="1" CornerRadius="6" Padding="{TemplateBinding Padding}">
+          <DockPanel>
+            <Border x:Name="TickBox" Width="18" Height="18" CornerRadius="4" Background="#1D1D1D" BorderBrush="#938B82" BorderThickness="1" Margin="0,0,9,0" VerticalAlignment="Center">
+              <TextBlock x:Name="Tick" Text="&#xE73E;" FontFamily="Segoe MDL2 Assets" Foreground="#20180F" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="Collapsed"/>
+            </Border>
+            <ContentPresenter VerticalAlignment="Center" RecognizesAccessKey="True"/>
+          </DockPanel>
+        </Border>
+        <ControlTemplate.Triggers>
+          <Trigger Property="IsChecked" Value="True"><Setter TargetName="TickBox" Property="Background" Value="#E58325"/><Setter TargetName="TickBox" Property="BorderBrush" Value="#E58325"/><Setter TargetName="Tick" Property="Visibility" Value="Visible"/></Trigger>
+          <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Choice" Property="BorderBrush" Value="#EBA76A"/></Trigger>
+          <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="Choice" Property="BorderBrush" Value="#FFB66E"/></Trigger>
+          <Trigger Property="IsEnabled" Value="False"><Setter TargetName="Choice" Property="Opacity" Value="0.45"/></Trigger>
+        </ControlTemplate.Triggers>
+      </ControlTemplate></Setter.Value></Setter>
+    </Style>
     <Style TargetType="TextBox">
       <Setter Property="Background" Value="#1D1D1D"/><Setter Property="Foreground" Value="#F4F1ED"/>
       <Setter Property="CaretBrush" Value="#EFA45D"/><Setter Property="SelectionBrush" Value="#94531E"/>
@@ -266,16 +285,28 @@ Add-Type -AssemblyName WindowsBase
           <Border Grid.Column="2" Background="#232221" CornerRadius="12" BorderBrush="#383430" BorderThickness="1" Padding="28">
             <Grid>
                 <TabControl x:Name="OutputTabs">
-                  <TabItem Header="Recipe preview">
-                    <ScrollViewer x:Name="PreviewScroll" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"><StackPanel x:Name="PreviewContent" Margin="0,4,8,0"/></ScrollViewer>
+                  <TabItem Header="Ingredients">
+                    <ScrollViewer x:Name="IngredientsScroll" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"><StackPanel x:Name="IngredientsContent" Margin="0,4,8,0"/></ScrollViewer>
                   </TabItem>
-                  <TabItem Header="Edit details">
-                    <ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel x:Name="EditContent" Margin="4,4,12,4"/></ScrollViewer>
+                  <TabItem Header="Recipe">
+                    <ScrollViewer x:Name="PreviewScroll" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"><StackPanel x:Name="PreviewContent" Margin="0,4,8,0"/></ScrollViewer>
                   </TabItem>
                   <TabItem Header="JSON">
                     <TextBox x:Name="JsonOutput" IsReadOnly="True" AcceptsReturn="True" TextWrapping="NoWrap" VerticalContentAlignment="Top" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" FontFamily="Consolas" FontSize="12" Foreground="#DCC2A5" AutomationProperties.Name="Mealie import JSON"/>
                   </TabItem>
                 </TabControl>
+              <Grid x:Name="EditorStage" Visibility="Collapsed" Background="#232221">
+                <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                <TextBlock x:Name="EditorTitle" FontSize="22" FontWeight="SemiBold" Margin="0,0,0,16"/>
+                <ScrollViewer Grid.Row="1" x:Name="EditorScroll" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"><StackPanel x:Name="EditorContent" Margin="0,0,12,12"/></ScrollViewer>
+                <StackPanel Grid.Row="2" Margin="0,12,0,0">
+                  <TextBlock x:Name="EditorError" Foreground="#EF9A8F" TextWrapping="Wrap" Margin="0,0,0,8"/>
+                  <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                    <Button x:Name="EditorCancel" Content="Cancel" Margin="0,0,10,0"/>
+                    <Button x:Name="EditorApply" Content="Apply changes" Style="{StaticResource PrimaryButton}"/>
+                  </StackPanel>
+                </StackPanel>
+              </Grid>
               <Border x:Name="OutputPlaceholder" Background="#232221">
                 <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="420">
                   <TextBlock x:Name="ProgressTitle" Text="Writing your recipe…" FontSize="24" FontWeight="SemiBold" TextAlignment="Center"/>
@@ -352,7 +383,16 @@ function Add-PreviewText([string]$Text,[double]$Size=14,[string]$Colour='#D4CDC5
 function Add-MetadataBox([string]$Label,[object[]]$Values) {
     $heading=New-Object Windows.Controls.TextBlock
     $heading.Text=$Label;$heading.FontSize=11;$heading.FontWeight='SemiBold';$heading.Foreground='#EBA76A';$heading.Margin='0,0,0,10'
-    [void]$metadata.Children.Add($heading)
+    $editField=switch ($Label) { 'YIELD' {'yield'} 'TIMING' {'timing'} 'CATEGORIES' {'categories'} 'TAGS' {'tags'} }
+    if ($editField) {
+        $row=New-Object Windows.Controls.DockPanel
+        $edit=New-Object Windows.Controls.Button;$edit.Content=New-PencilIcon;$edit.Tag=$editField;$edit.Padding='8,3';$edit.Margin='8,0,0,8'
+        $edit.ToolTip='Edit ' + $Label.ToLowerInvariant()
+        [Windows.Automation.AutomationProperties]::SetName($edit,$edit.ToolTip)
+        [Windows.Controls.DockPanel]::SetDock($edit,'Right')
+        $edit.Add_Click({Open-DetailEditor ([string]$this.Tag)})
+        [void]$row.Children.Add($edit);[void]$row.Children.Add($heading);[void]$metadata.Children.Add($row)
+    } else { [void]$metadata.Children.Add($heading) }
     $panel=New-Object Windows.Controls.WrapPanel
     $panel.Margin='0,0,0,20'
     if (-not $Values.Count) { $Values=@('None selected') }
@@ -366,8 +406,10 @@ function Add-MetadataBox([string]$Label,[object[]]$Values) {
     }
     [void]$metadata.Children.Add($panel)
 }
+$script:editorActive=$false;$script:editorKind=''
 function Show-MetadataEditor($Recipe) {
-    $panel=$form.FindName('EditContent');$panel.Children.Clear()
+    $script:editPanel=New-Object Windows.Controls.StackPanel
+    $panel=$script:editPanel
     $script:detailInputs=@{};$script:detailChoices=@{}
     $hint=New-Object Windows.Controls.TextBlock
     $hint.Text='Edit details, then apply before copying or saving. Blank values are allowed. Times are in minutes (0 means no time).';$hint.TextWrapping='Wrap';$hint.Margin='0,0,0,16'
@@ -375,9 +417,11 @@ function Show-MetadataEditor($Recipe) {
     foreach ($field in @('recipeYield','prepTime','cookTime','totalTime')) {
         $label=New-Object Windows.Controls.TextBlock
         $label.Text=switch ($field) { 'recipeYield' {'Yield (for example 4 servings)'} 'prepTime' {'Prep time (minutes)'} 'cookTime' {'Cook time (minutes)'} 'totalTime' {'Total time (minutes)'} }
+        $label.Tag=if ($field -eq 'recipeYield') { 'yield' } else { 'timing' }
         [void]$panel.Children.Add($label)
         $input=New-Object Windows.Controls.TextBox;$input.Margin='0,4,0,12'
         $input.Text=if ($field -eq 'recipeYield') { $Recipe.$field } elseif ($Recipe.$field) { [System.Xml.XmlConvert]::ToTimeSpan($Recipe.$field).TotalMinutes.ToString([Globalization.CultureInfo]::InvariantCulture) } else { '' }
+        $input.Tag=$label.Tag
         $input.Add_TextChanged({$copy.IsEnabled=$false;$save.IsEnabled=$false;Set-AppStatus 'Apply detail changes before exporting.'})
         $script:detailInputs[$field]=$input;[void]$panel.Children.Add($input)
     }
@@ -385,8 +429,9 @@ function Show-MetadataEditor($Recipe) {
     foreach ($field in @('recipeCategory','keywords')) {
         $label=New-Object Windows.Controls.TextBlock
         $label.Text=if ($field -eq 'recipeCategory') { 'Categories (up to two)' } else { 'Tags' }
+        $label.Tag=if ($field -eq 'recipeCategory') { 'categories' } else { 'tags' }
         $label.Margin='0,12,0,8';[void]$panel.Children.Add($label)
-        $choices=New-Object Windows.Controls.WrapPanel
+        $choices=New-Object Windows.Controls.WrapPanel;$choices.Tag=$label.Tag
         $script:detailChoices[$field]=@()
         $labels=if ($field -eq 'recipeCategory') { @($config.categories | ForEach-Object { $_.name }) } else { @($config.tagGroups | ForEach-Object { $_.labels }) }
         foreach ($name in $labels) {
@@ -396,9 +441,7 @@ function Show-MetadataEditor($Recipe) {
         }
         [void]$panel.Children.Add($choices)
     }
-    $script:applyDetails=New-Object Windows.Controls.Button;$script:applyDetails.Content='Apply details';$script:applyDetails.Margin='0,16,0,12';$script:applyDetails.HorizontalAlignment='Left'
-    $script:applyDetails.Add_Click({Apply-RecipeDetails})
-    [void]$panel.Children.Add($script:applyDetails)
+    $script:applyDetails=$form.FindName('EditorApply')
 }
 function Apply-RecipeDetails {
     try {
@@ -424,8 +467,108 @@ function Apply-RecipeDetails {
         Show-RecipePreview $outputBox.Text
         $copy.IsEnabled=$true;$save.IsEnabled=$true
         Set-AppStatus 'Details applied. Preview and JSON updated.'
-    } catch { Set-AppStatus $_.Exception.Message 'error' }
+        Close-RecipeEditor
+    } catch {
+        Set-AppStatus $_.Exception.Message 'error'
+        $form.FindName('EditorError').Text=$_.Exception.Message
+    }
 }
+function Add-RecipeSection([string]$Label,[string]$Field,$Parent) {
+    $area=New-Object Windows.Controls.Border
+    $area.Background='#272522';$area.BorderBrush='#45403A';$area.BorderThickness='1';$area.CornerRadius='8';$area.Padding='18';$area.Margin='0,16,0,0'
+    $content=New-Object Windows.Controls.StackPanel
+    $row=New-Object Windows.Controls.DockPanel
+    $edit=New-Object Windows.Controls.Button;$edit.Content=New-PencilIcon;$edit.Tag=$Field;$edit.Padding='12,5';$edit.Margin='12,0,0,12'
+    $edit.ToolTip='Edit ' + $Label.ToLowerInvariant()
+    [Windows.Automation.AutomationProperties]::SetName($edit,$edit.ToolTip)
+    $edit.Add_Click({Open-ContentEditor ([string]$this.Tag)})
+    [Windows.Controls.DockPanel]::SetDock($edit,'Right');[void]$row.Children.Add($edit)
+    $heading=New-Object Windows.Controls.TextBlock;$heading.Text=$Label;$heading.FontSize=20;$heading.FontWeight='SemiBold';$heading.Margin='0,0,0,12'
+    [void]$row.Children.Add($heading);[void]$content.Children.Add($row)
+    $area.Child=$content;[void]$Parent.Children.Add($area)
+    return $content
+}
+function New-PencilIcon {
+    $icon=New-Object Windows.Controls.TextBlock
+    $icon.FontFamily='Segoe MDL2 Assets';$icon.Text=[string][char]0xE70F;$icon.FontSize=15
+    return $icon
+}
+function Show-RecipeEditor([string]$Title,[string]$Kind) {
+    $script:editorActive=$true;$script:editorKind=$Kind
+    $form.FindName('EditorTitle').Text=$Title;$form.FindName('EditorError').Text=''
+    $form.FindName('OutputTabs').Visibility='Collapsed';$form.FindName('EditorStage').Visibility='Visible'
+    $metadata.IsEnabled=$false;$back.IsEnabled=$false;$copy.IsEnabled=$false;$save.IsEnabled=$false
+    $form.FindName('EditorScroll').ScrollToTop()
+}
+function Close-RecipeEditor {
+    $form.FindName('EditorStage').Visibility='Collapsed';$form.FindName('OutputTabs').Visibility='Visible'
+    $form.FindName('EditorContent').Children.Clear();$form.FindName('EditorError').Text=''
+    $script:editorActive=$false;$script:editorKind=''
+    $metadata.IsEnabled=$true;$back.IsEnabled=$true;$copy.IsEnabled=$true;$save.IsEnabled=$true
+    Show-MetadataEditor ($outputBox.Text | ConvertFrom-Json)
+}
+function Open-DetailEditor([string]$Section) {
+    Show-MetadataEditor ($outputBox.Text | ConvertFrom-Json)
+    foreach ($child in $script:editPanel.Children) { if ($child.Tag -and $child.Tag -ne $Section) { $child.Visibility='Collapsed' } }
+    $hostPanel=$form.FindName('EditorContent');$hostPanel.Children.Clear();[void]$hostPanel.Children.Add($script:editPanel)
+    Show-RecipeEditor ('Edit ' + $Section) 'metadata'
+}
+function Apply-RecipeContent([string]$Field,[string[]]$Entries) {
+    $edited=$outputBox.Text | ConvertFrom-Json
+    if (-not $Entries.Count -or @($Entries | Where-Object { [string]::IsNullOrWhiteSpace($_) }).Count) { throw 'Each entry needs text. Remove unwanted rows or enter at least one item.' }
+    if ($Field -eq 'ingredients') {
+        $edited.recipeIngredient=@($Entries | ForEach-Object { $_.Trim() })
+    } elseif ($Field -eq 'method') {
+        $edited.recipeInstructions=@($Entries | ForEach-Object { [pscustomobject]@{'@type'='HowToStep';text=$_.Trim()} })
+    } else { throw 'Unknown recipe section.' }
+    $note='Manual edits: recipe content changed after conversion; source QA counts describe the original conversion. Review categories, tags and timings against your changes.'
+    if ($edited.comment -notlike ('*' + $note + '*')) { $edited.comment=($edited.comment + "`n`n" + $note).Trim() }
+    $outputBox.Text=$edited | ConvertTo-Json -Depth 12
+    Show-RecipePreview $outputBox.Text
+    Set-AppStatus 'Recipe section updated. Review classifications and timings after content changes.'
+}
+function Add-ContentEditorRow([string]$Text='') {
+    $row=New-Object Windows.Controls.DockPanel;$row.Margin='0,0,0,12'
+    $remove=New-Object Windows.Controls.Button;$remove.Content='Remove';$remove.Padding='10,7';$remove.Margin='10,0,0,0';$remove.VerticalAlignment='Top'
+    [Windows.Controls.DockPanel]::SetDock($remove,'Right');[void]$row.Children.Add($remove)
+    $label=New-Object Windows.Controls.TextBlock;$label.Width=65;$label.Margin='0,10,8,0'
+    [Windows.Controls.DockPanel]::SetDock($label,'Left');[void]$row.Children.Add($label)
+    $input=New-Object Windows.Controls.TextBox;$input.Text=$Text;$input.TextWrapping='Wrap';$input.VerticalContentAlignment='Top'
+    $input.AcceptsReturn=($script:contentField -eq 'method');$input.MinHeight=if ($script:contentField -eq 'method') { 100 } else { 44 }
+    $row.Tag=$input
+    [void]$row.Children.Add($input);[void]$script:contentRows.Children.Add($row)
+    $remove.Add_Click({$rowToRemove=$this.Parent;[void]$script:contentRows.Children.Remove($rowToRemove);Update-ContentRowLabels})
+    Update-ContentRowLabels
+}
+function Update-ContentRowLabels {
+    $number=0
+    foreach ($row in $script:contentRows.Children) {
+        $number++;$label=if ($script:contentField -eq 'method') { "Step $number" } else { "Item $number" }
+        $row.Children[1].Text=$label
+        [Windows.Automation.AutomationProperties]::SetName($row.Tag,$label)
+    }
+}
+function Open-ContentEditor([string]$Field) {
+    $recipe=$outputBox.Text | ConvertFrom-Json
+    $script:contentField=$Field;$script:contentRows=New-Object Windows.Controls.StackPanel
+    $hostPanel=$form.FindName('EditorContent');$hostPanel.Children.Clear()
+    [void]$hostPanel.Children.Add($script:contentRows)
+    $entries=if ($Field -eq 'ingredients') { @($recipe.recipeIngredient) } else { @($recipe.recipeInstructions | ForEach-Object { $_.text }) }
+    foreach ($entry in $entries) { Add-ContentEditorRow $entry }
+    $add=New-Object Windows.Controls.Button;$add.Content=if ($Field -eq 'ingredients') { 'Add ingredient' } else { 'Add step' };$add.HorizontalAlignment='Left'
+    $add.Add_Click({Add-ContentEditorRow});[void]$hostPanel.Children.Add($add)
+    Show-RecipeEditor $(if ($Field -eq 'ingredients') { 'Edit ingredients' } else { 'Edit recipe steps' }) 'content'
+}
+$form.FindName('EditorCancel').Add_Click({Close-RecipeEditor;Set-AppStatus 'Changes discarded.'})
+$form.FindName('EditorApply').Add_Click({
+    if ($script:editorKind -eq 'content') {
+        try {
+            $entries=@($script:contentRows.Children | ForEach-Object { $_.Tag.Text })
+            Apply-RecipeContent $script:contentField $entries
+            Close-RecipeEditor
+        } catch { $form.FindName('EditorError').Text=$_.Exception.Message;Set-AppStatus $_.Exception.Message 'error' }
+    } else { Apply-RecipeDetails }
+})
 function Show-RecipePreview([string]$Json) {
     $recipe=$Json | ConvertFrom-Json -ErrorAction Stop
     Show-MetadataEditor $recipe
@@ -460,15 +603,19 @@ function Show-RecipePreview([string]$Json) {
     }
     if ($recipe.PSObject.Properties.Name -contains 'url' -and $recipe.url) { Add-MetadataBox 'SOURCE' @($recipe.url) }
     if ($recipe.description) { Add-PreviewText $recipe.description 16 '#AAA6A0' 'Normal' '0,0,0,24' }
-    Add-PreviewText 'Ingredients' 20 '#F4F1ED' 'SemiBold'
+    $rootPreview=$preview
+    $ingredientsPreview=$form.FindName('IngredientsContent');$ingredientsPreview.Children.Clear()
+    $preview=Add-RecipeSection 'Ingredients' 'ingredients' $ingredientsPreview
     foreach ($ingredient in $recipe.recipeIngredient) { Add-PreviewText ([char]0x2022 + '  ' + $ingredient) 15 '#D4CDC5' 'Normal' '0,0,0,8' }
-    Add-PreviewText 'Method' 20 '#F4F1ED' 'SemiBold' '0,18,0,12'
+    $preview=Add-RecipeSection 'Method' 'method' $rootPreview
     $number=0
     foreach ($step in $recipe.recipeInstructions) {
         $number++
         Add-PreviewText ("STEP $number") 10 '#EBA76A' 'SemiBold' '0,4,0,6'
         Add-PreviewText $step.text 16 '#D4CDC5' 'Normal' '0,0,0,18'
     }
+    $preview=$rootPreview
+    $form.FindName('IngredientsScroll').ScrollToTop()
     $form.FindName('PreviewScroll').ScrollToTop()
     $metadata.Parent.ScrollToTop()
     $outputPlaceholder.Visibility='Collapsed'
@@ -527,7 +674,7 @@ function Start-RecipeConversion {
     if ($script:worker -or $inputStage.Visibility -ne 'Visible') { return }
     if ([string]::IsNullOrWhiteSpace($inputBox.Text)) { Set-AppStatus 'Paste a recipe to get started.' 'error';[void]$inputBox.Focus();return }
     if ($script:modelWorker -or $model.SelectedIndex -lt 0) { Set-AppStatus 'Select an available Ollama model before converting.' 'error';return }
-    $copy.IsEnabled=$false;$save.IsEnabled=$false;$outputBox.Clear();$preview.Children.Clear();$outputPlaceholder.Visibility='Visible';$convert.IsEnabled=$false
+    $copy.IsEnabled=$false;$save.IsEnabled=$false;$outputBox.Clear();$preview.Children.Clear();$form.FindName('IngredientsContent').Children.Clear();$outputPlaceholder.Visibility='Visible';$convert.IsEnabled=$false
     $metadata.Children.Clear();$inputStage.Visibility='Collapsed';$outputStage.Visibility='Visible'
     $form.FindName('OutputTabs').SelectedIndex=0
     $generationProgress.Visibility='Visible';$generationProgress.IsIndeterminate=$true
